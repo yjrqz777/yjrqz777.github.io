@@ -1,0 +1,13 @@
+@font-face{
+    font-family: 'ArchitectsDaughter';
+    font-display: swap;
+    src: url('../font/ArchitectsDaughter.ttf') format("truetype");
+}
+/* @font-face{
+    font-family: 'HarmonyOS Sans SC';
+    font-display: swap;
+    src: url('../font/HarmonyOS_Sans_SC_Regular.ttf') format("truetype");
+} */
+body {
+    font-family: 'ArchitectsDaughter';
+}
