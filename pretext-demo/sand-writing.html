@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>沙字书写 · Pretext Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sand: #cba96f;
+      --sand-light: #ead19a;
+      --sand-dark: #8b6539;
+      --ink: #3f2c1a;
+      --foam: rgba(255, 247, 219, 0.78);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 12%, rgba(255, 237, 181, 0.55), transparent 28%),
+        linear-gradient(155deg, #d8b677 0%, #c09a5f 42%, #a87945 100%);
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      user-select: none;
+    }
+
+    .stage {
+      position: fixed;
+      inset: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      left: clamp(18px, 4vw, 56px);
+      top: clamp(18px, 4vw, 48px);
+      z-index: 2;
+      max-width: 360px;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      color: rgba(63, 44, 26, 0.54);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin-top: 10px;
+      color: rgba(63, 44, 26, 0.86);
+      font-size: clamp(34px, 5vw, 68px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: 0;
+      text-shadow: 0 1px rgba(255, 244, 202, 0.42);
+    }
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 2;
+      transform: translateX(-50%);
+      color: rgba(63, 44, 26, 0.52);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <canvas id="sand"></canvas>
+  </div>
+
+  <header class="hud">
+    <div class="eyebrow">Pretext · Sand Writing</div>
+    <h1>沙字书写</h1>
+  </header>
+
+  <div class="hint">移动鼠标吹散沙粒 · 点击重新书写</div>
+
+  <script type="module">
+    let prepare;
+    let layoutNextLineRange;
+    let materializeLineRange;
+
+    try {
+      const mod = await import("https://esm.sh/@chenglou/pretext@0.0.6");
+      prepare = mod.prepareWithSegments || mod.prepare;
+      layoutNextLineRange = mod.layoutNextLineRange || mod.layoutNextLine;
+      materializeLineRange = mod.materializeLineRange || ((_prepared, range) => ({ text: range.text || "" }));
+    } catch (error) {
+      console.error("Pretext load failed", error);
+    }
+
+    const canvas = document.getElementById("sand");
+    const ctx = canvas.getContext("2d");
+    const off = document.createElement("canvas");
+    const offCtx = off.getContext("2d");
+
+    const TEXT = [
+      "大风起兮云飞扬",
+      "威加海内兮归故乡",
+      "安得猛士兮守四方"
+    ].join("\n");
+
+    const FONT_STACK = '"Noto Serif SC", "Source Han Serif SC", "Songti SC", serif';
+    const FONT_SIZE = 46;
+    const LINE_HEIGHT = 72;
+    const FONT = `900 ${FONT_SIZE}px ${FONT_STACK}`;
+    const SMALL_FONT = `600 18px ${FONT_STACK}`;
+
+    let W = 0;
+    let H = 0;
+    let DPR = 1;
+    let grains = [];
+    let textLines = [];
+    let mouse = { x: -9999, y: -9999 };
+    let writingProgress = 0;
+    let wind = 0;
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      buildLayout();
+      buildGrains();
+    }
+
+    function buildLayout() {
+      if (!prepare || !layoutNextLineRange) return;
+      textLines = [];
+      const width = Math.min(W * 0.76, 860);
+      const x = (W - width) / 2;
+      let y = H * 0.42;
+
+      ctx.font = FONT;
+      for (const paragraph of TEXT.split("\n")) {
+        const prepared = prepare(paragraph, FONT);
+        let cursor = { segmentIndex: 0, graphemeIndex: 0 };
+        while (true) {
+          const range = layoutNextLineRange(prepared, cursor, width);
+          if (!range) break;
+          const line = materializeLineRange(prepared, range).text;
+          const lineWidth = ctx.measureText(line).width;
+          textLines.push({ text: line, x: x + (width - lineWidth) / 2, y });
+          cursor = range.end;
+          y += LINE_HEIGHT;
+        }
+      }
+    }
+
+    function buildGrains() {
+      grains = [];
+      writingProgress = 0;
+      off.width = W;
+      off.height = H;
+      offCtx.clearRect(0, 0, W, H);
+      offCtx.font = FONT;
+      offCtx.textBaseline = "top";
+      offCtx.fillStyle = "#000";
+
+      for (const line of textLines) {
+        offCtx.fillText(line.text, line.x, line.y);
+      }
+
+      const img = offCtx.getImageData(0, 0, W, H);
+      const step = Math.max(3, Math.floor(W / 280));
+
+      for (let y = 0; y < H; y += step) {
+        for (let x = 0; x < W; x += step) {
+          const alpha = img.data[(y * W + x) * 4 + 3];
+          if (alpha > 24 && Math.random() > 0.34) {
+            const startAngle = Math.random() * Math.PI * 2;
+            const spread = 90 + Math.random() * 180;
+            grains.push({
+              x: x + Math.cos(startAngle) * spread,
+              y: y + Math.sin(startAngle) * spread + H * 0.08,
+              tx: x + (Math.random() - 0.5) * 1.8,
+              ty: y + (Math.random() - 0.5) * 1.8,
+              vx: 0,
+              vy: 0,
+              r: Math.random() * 1.35 + 0.55,
+              delay: Math.random() * 0.62,
+              shade: Math.random()
+            });
+          }
+        }
+      }
+    }
+
+    function drawSand(now) {
+      const t = now * 0.001;
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, "#e5c889");
+      grad.addColorStop(0.45, "#cba96f");
+      grad.addColorStop(1, "#9d7040");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.globalAlpha = 0.26;
+      ctx.fillStyle = "#fff2be";
+      for (let i = 0; i < 170; i++) {
+        const x = (i * 97 + Math.sin(t * 0.2 + i) * 18) % W;
+        const y = (i * 53 + Math.cos(t * 0.13 + i) * 12) % H;
+        ctx.fillRect(x, y, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      const waveY = H * 0.17 + Math.sin(t * 0.8) * 7;
+      ctx.fillStyle = "rgba(255, 249, 229, 0.28)";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(W, 0);
+      ctx.lineTo(W, waveY);
+      for (let x = W; x >= 0; x -= 22) {
+        ctx.lineTo(x, waveY + Math.sin(x * 0.012 + t * 1.8) * 12);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawEngraving() {
+      ctx.save();
+      ctx.font = FONT;
+      ctx.textBaseline = "top";
+      ctx.shadowColor = "rgba(75, 45, 18, 0.35)";
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetY = 3;
+      ctx.fillStyle = "rgba(78, 48, 24, 0.22)";
+      for (const line of textLines) {
+        ctx.fillText(line.text, line.x, line.y + 2);
+      }
+
+      ctx.shadowColor = "rgba(255, 232, 172, 0.38)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = -2;
+      ctx.fillStyle = "rgba(255, 230, 168, 0.16)";
+      for (const line of textLines) {
+        ctx.fillText(line.text, line.x, line.y - 1);
+      }
+      ctx.restore();
+    }
+
+    function updateGrains() {
+      writingProgress = Math.min(1, writingProgress + 0.0065);
+      wind += 0.003;
+
+      for (const grain of grains) {
+        const ready = Math.max(0, Math.min(1, (writingProgress - grain.delay) / 0.38));
+        const pull = ready * ready * (3 - 2 * ready);
+        grain.vx += (grain.tx - grain.x) * (0.018 + pull * 0.035);
+        grain.vy += (grain.ty - grain.y) * (0.018 + pull * 0.035);
+
+        const dx = grain.x - mouse.x;
+        const dy = grain.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 130 && dist > 1) {
+          const force = ((130 - dist) / 130) * 0.72;
+          grain.vx += (dx / dist) * force;
+          grain.vy += (dy / dist) * force;
+        }
+
+        grain.vx += Math.sin(wind + grain.ty * 0.01) * 0.012;
+        grain.vx *= 0.86;
+        grain.vy *= 0.86;
+        grain.x += grain.vx;
+        grain.y += grain.vy;
+      }
+    }
+
+    function drawGrains() {
+      for (const grain of grains) {
+        const light = grain.shade;
+        ctx.fillStyle = light > 0.68 ? "rgba(255, 232, 167, 0.86)" : light > 0.28 ? "rgba(121, 78, 40, 0.74)" : "rgba(73, 45, 24, 0.62)";
+        ctx.beginPath();
+        ctx.arc(grain.x, grain.y, grain.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawCaption() {
+      ctx.save();
+      ctx.font = SMALL_FONT;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "rgba(63, 44, 26, 0.46)";
+      ctx.fillText("Pretext 负责逐行测量，Canvas 负责沙粒、刻痕与风吹动画", W / 2, H * 0.42 + textLines.length * LINE_HEIGHT + 28);
+      ctx.restore();
+    }
+
+    function animate(now) {
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      drawSand(now);
+      drawEngraving();
+      updateGrains();
+      drawGrains();
+      drawCaption();
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener("pointermove", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = event.clientX - rect.left;
+      mouse.y = event.clientY - rect.top;
+    });
+
+    canvas.addEventListener("pointerleave", () => {
+      mouse.x = -9999;
+      mouse.y = -9999;
+    });
+
+    canvas.addEventListener("click", () => {
+      buildGrains();
+    });
+
+    window.addEventListener("resize", resize);
+
+    resize();
+    document.fonts.ready.then(() => {
+      buildLayout();
+      buildGrains();
+    });
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

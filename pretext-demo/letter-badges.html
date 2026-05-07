@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Letter Badges · Interactive Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --page: #07080d;
+      --panel: #e9e9ea;
+      --bar: #191923;
+      --text: #f6f2ea;
+      --muted: #d8c8a9;
+      --accent: #ff8d3b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .page {
+      width: min(940px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin-top: 6px;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      width: min(610px, 100%);
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .demo-card {
+      width: min(720px, 100%);
+      margin: 26px auto 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+    }
+
+    .demo-bar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 18px;
+      background: var(--bar);
+      color: #fff8e7;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .bar-hint {
+      color: #d6c7aa;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #e6e6e7;
+      touch-action: none;
+      cursor: none;
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        width: min(100vw - 24px, 520px);
+        padding-top: 24px;
+      }
+
+      .intro {
+        font-size: 14px;
+      }
+
+      .demo-bar {
+        padding: 0 12px;
+      }
+
+      .bar-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">// Interactive Demo</div>
+    <h1>Try It Yourself</h1>
+    <p class="intro">
+      Move your cursor over the canvas to control the creature. The letter badges are pushed away by it and spring back when it moves on. On mobile, the creature wanders automatically.
+    </p>
+
+    <section class="demo-card" aria-label="Letter Badges interactive canvas">
+      <div class="demo-bar">
+        <span>Letter Badges</span>
+        <span class="bar-hint">Move cursor to control creature</span>
+      </div>
+      <canvas id="demo" width="720" height="502"></canvas>
+    </section>
+  </main>
+
+  <script type="module">
+    let prepareWithSegments;
+
+    try {
+      const mod = await import("https://esm.sh/@chenglou/pretext@0.0.6");
+      prepareWithSegments = mod.prepareWithSegments || mod.prepare;
+    } catch (error) {
+      console.error("Pretext load failed", error);
+    }
+
+    const canvas = document.getElementById("demo");
+    const ctx = canvas.getContext("2d");
+    const BASE_W = 720;
+    const BASE_H = 502;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = BASE_W * DPR;
+    canvas.height = BASE_H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    const letters = ["L", "O", "V", "E", "↑", "↗", "→", "↘", "↙", "↖"];
+    const palette = ["#9ee7bd", "#9fdff0", "#fee58f", "#e5c8f2", "#f7c8c7"];
+    const font = "700 14px Inter, system-ui, sans-serif";
+
+    const badges = [];
+    const pointer = { x: BASE_W * 0.22, y: BASE_H * 0.46, active: false };
+    const creature = { x: BASE_W * 0.22, y: BASE_H * 0.46, tx: BASE_W * 0.22, ty: BASE_H * 0.46, angle: 0 };
+    const PI2 = Math.PI * 2;
+    const REPEL_RADIUS = 120;
+    const REPEL_STRENGTH = 12;
+    const DRIFT = 0.06;
+    const DAMPING = 0.96;
+    const EDGE_MARGIN = 22;
+
+    function init() {
+      badges.length = 0;
+
+      const area = BASE_W * BASE_H;
+      const cellSize = Math.sqrt(area / 620);
+      const cols = Math.floor(BASE_W / cellSize);
+      const rows = Math.floor(BASE_H / cellSize);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const jx = (Math.random() - 0.5) * cellSize * 0.82;
+          const jy = (Math.random() - 0.5) * cellSize * 0.82;
+          badges.push({
+            ch: letters[Math.floor(Math.random() * letters.length)],
+            x: (c + 0.5) * cellSize + jx,
+            y: (r + 0.5) * cellSize + jy,
+            homeX: (c + 0.5) * cellSize + jx,
+            homeY: (r + 0.5) * cellSize + jy,
+            baseAngle: Math.random() * PI2,
+            driftAngle: Math.random() * PI2,
+            driftTurn: (Math.random() - 0.5) * 0.1,
+            rotation: Math.random() * PI2,
+            color: palette[Math.floor(Math.random() * palette.length)],
+            r: 14,
+            phase: Math.random() * PI2,
+            scale: 0.88 + Math.random() * 0.24,
+            vx: 0,
+            vy: 0
+          });
+        }
+      }
+    }
+
+    function distanceToCreature(badge) {
+      const dx = badge.x - creature.x;
+      const dy = badge.y - creature.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, BASE_W, BASE_H);
+      ctx.fillStyle = "#e6e6e7";
+      ctx.fillRect(0, 0, BASE_W, BASE_H);
+    }
+
+    function updateBadge(badge) {
+      const dx = badge.x - creature.x;
+      const dy = badge.y - creature.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < REPEL_RADIUS && dist > 0) {
+        const force = ((REPEL_RADIUS - dist) / REPEL_RADIUS) * REPEL_STRENGTH;
+        badge.vx += (dx / dist) * force;
+        badge.vy += (dy / dist) * force;
+      }
+
+      badge.vx += (BASE_W / 2 - badge.x) * 0.0002;
+      badge.vy += (BASE_H / 2 - badge.y) * 0.0002;
+      badge.vx += (badge.homeX - badge.x) * 0.0008;
+      badge.vy += (badge.homeY - badge.y) * 0.0008;
+
+      badge.driftAngle += badge.driftTurn * 0.03 + (Math.random() - 0.5) * 0.01;
+      badge.vx += Math.cos(badge.driftAngle) * DRIFT;
+      badge.vy += Math.sin(badge.driftAngle) * DRIFT;
+
+      badge.vx *= DAMPING;
+      badge.vy *= DAMPING;
+      badge.x += badge.vx;
+      badge.y += badge.vy;
+      badge.rotation += badge.vx * 0.015 + badge.vy * 0.006;
+
+      if (badge.x < EDGE_MARGIN) badge.vx += (EDGE_MARGIN - badge.x) * 0.3;
+      if (badge.x > BASE_W - EDGE_MARGIN) badge.vx += (BASE_W - EDGE_MARGIN - badge.x) * 0.3;
+      if (badge.y < EDGE_MARGIN) badge.vy += (EDGE_MARGIN - badge.y) * 0.3;
+      if (badge.y > BASE_H - EDGE_MARGIN) badge.vy += (BASE_H - EDGE_MARGIN - badge.y) * 0.3;
+    }
+
+    function update(now) {
+      const t = now * 0.001;
+      if (pointer.active) {
+        creature.tx = pointer.x;
+        creature.ty = pointer.y;
+      } else {
+        creature.tx = BASE_W * 0.5 + Math.cos(t * 0.55) * 190;
+        creature.ty = BASE_H * 0.5 + Math.sin(t * 0.82) * 120;
+      }
+
+      creature.x += (creature.tx - creature.x) * 0.11;
+      creature.y += (creature.ty - creature.y) * 0.11;
+      creature.x = Math.max(40, Math.min(BASE_W - 40, creature.x));
+      creature.y = Math.max(45, Math.min(BASE_H - 45, creature.y));
+      creature.angle += 0.035;
+
+      for (const badge of badges) updateBadge(badge);
+    }
+
+    function creatureRadius() {
+      return 32;
+    }
+
+    function drawBadges() {
+      ctx.font = font;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (const badge of badges) {
+        const dist = distanceToCreature(badge);
+        const near = dist < REPEL_RADIUS * 1.4;
+        const alpha = near ? 1 : 0.45;
+
+        ctx.save();
+        ctx.translate(badge.x, badge.y);
+        ctx.rotate(badge.rotation);
+        ctx.scale(badge.scale, badge.scale);
+
+        if (near) {
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = badge.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, badge.r, 0, PI2);
+          ctx.fill();
+          ctx.fillStyle = "#333";
+          ctx.fillText(badge.ch, 0, 1);
+        } else {
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = "#c0c0c0";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(0, 0, badge.r, 0, PI2);
+          ctx.stroke();
+          ctx.fillStyle = "#888";
+          ctx.fillText(badge.ch, 0, 1);
+        }
+
+        ctx.restore();
+      }
+    }
+    function drawCreature() {
+      ctx.save();
+      ctx.translate(creature.x, creature.y);
+
+      for (let i = 0; i < 14; i++) {
+        const a = creature.angle + (i / 14) * Math.PI * 2;
+        const r = 27;
+        ctx.fillStyle = "#161719";
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 6.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#17181b";
+      ctx.beginPath();
+      ctx.arc(0, 0, 23, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(-8, -2, 8, 0, Math.PI * 2);
+      ctx.arc(8, -2, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      const lookX = Math.max(-3, Math.min(3, (creature.tx - creature.x) * 0.04));
+      const lookY = Math.max(-3, Math.min(3, (creature.ty - creature.y) * 0.04));
+      ctx.fillStyle = "#161719";
+      ctx.beginPath();
+      ctx.arc(-8 + lookX, -2 + lookY, 3, 0, Math.PI * 2);
+      ctx.arc(8 + lookX, -2 + lookY, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 8, 7, 0.1, Math.PI - 0.1);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function loop(now) {
+      update(now);
+      drawBackground();
+      drawBadges();
+      drawCreature();
+      requestAnimationFrame(loop);
+    }
+
+    function setPointer(event, active) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * BASE_W;
+      pointer.y = ((event.clientY - rect.top) / rect.height) * BASE_H;
+      pointer.active = active;
+    }
+
+    canvas.addEventListener("pointerenter", (event) => setPointer(event, true));
+    canvas.addEventListener("pointermove", (event) => setPointer(event, true));
+    canvas.addEventListener("pointerleave", () => {
+      pointer.active = false;
+    });
+
+    canvas.addEventListener("touchstart", (event) => {
+      if (event.touches[0]) setPointer(event.touches[0], true);
+    }, { passive: true });
+
+    init();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
