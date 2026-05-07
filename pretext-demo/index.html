@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>大风歌 · 字障排版</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Serif+SC:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #08080f;
+      --text: #e8e4dc;
+      --text-dim: rgba(232, 228, 220, 0.5);
+      --gold: #c9a050;
+      --gold-dim: rgba(201, 160, 80, 0.3);
+      --red: #b65b50;
+      --blue: #6b8fa3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: default;
+      color: var(--text);
+      background: var(--bg);
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+    }
+
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.1;
+      transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .orb-1 {
+      width: 60vw;
+      height: 60vw;
+      top: -20%;
+      left: -15%;
+      background: radial-gradient(circle, #2a3a5c 0%, transparent 70%);
+    }
+
+    .orb-2 {
+      width: 50vw;
+      height: 50vw;
+      right: -10%;
+      bottom: -15%;
+      background: radial-gradient(circle, #3b1d4e 0%, transparent 70%);
+    }
+
+    .orb-3 {
+      width: 35vw;
+      height: 35vw;
+      top: 40%;
+      left: 50%;
+      background: radial-gradient(circle, #5c3a1a 0%, transparent 70%);
+    }
+
+    .canvas-stage {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      min-height: 86vh;
+      animation: fadeSlideIn 1.4s 0.25s ease-out both;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+    }
+
+    .hint-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 20;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.24);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .footer-note {
+      position: relative;
+      z-index: 2;
+      padding: 2vh 0 4vh;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    .footer-note a {
+      color: var(--gold-dim);
+      text-decoration: none;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hint-bar {
+        bottom: 18px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="canvas-stage" id="canvasStage">
+    <canvas id="c"></canvas>
+  </div>
+
+  <div class="hint-bar">拖拽大字 · 正文实时绕行</div>
+
+  <footer class="footer-note">
+    Typeset with <a href="https://github.com/chenglou/pretext" target="_blank" rel="noreferrer">Pretext</a> by Cheng Lou
+  </footer>
+
+  <script type="module">
+    let prepareWithSegments;
+    let layoutNextLineRange;
+    let materializeLineRange;
+
+    try {
+      const mod = await import("https://esm.sh/@chenglou/pretext@0.0.6");
+      prepareWithSegments = mod.prepareWithSegments || mod.prepare;
+      layoutNextLineRange = mod.layoutNextLineRange || mod.layoutNextLine;
+      materializeLineRange = mod.materializeLineRange || ((_prepared, range) => ({ text: range.text || "", width: range.width }));
+    } catch (error) {
+      console.error("Pretext load failed", error);
+    }
+
+    const POEM_LINES = [
+      "大风起兮云飞扬，",
+      "威加海内兮归故乡。",
+      "安得猛士兮守四方！"
+    ];
+
+    const NOTE_LINES = [
+      "刘邦",
+      "",
+      "这首短歌作于汉高祖十二年。三句之间，先写风云骤起，继写天下归心，最终落到守成之忧。"
+    ];
+
+    const FONT_SIZE = 24;
+    const LINE_HEIGHT = 46;
+    const FONT_STACK = '"KaiTi", "STKaiti", "Kaiti SC", "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif';
+    const FONT = `${FONT_SIZE}px ${FONT_STACK}`;
+    const TITLE_FONT = `900 74px "Playfair Display", "Noto Serif SC", "Source Han Serif SC", serif`;
+    const TITLE_WIND_FONT = `italic 900 74px "Playfair Display", "Noto Serif SC", "Source Han Serif SC", serif`;
+    const AUTHOR_FONT = `16px "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif`;
+    const NOTE_FONT = `18px "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif`;
+    const CHAR_SIZE = 96;
+    const CHAR_FONT = `900 ${CHAR_SIZE}px "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif`;
+
+    const bigChars = [
+      { char: "大", x: 0, y: 0, tx: 0, ty: 0, wander: 0, color: "#b65b50", glow: "rgba(182, 91, 80, 0.42)" },
+      { char: "风", x: 0, y: 0, tx: 0, ty: 0, wander: Math.PI * 0.64, color: "#6b8fa3", glow: "rgba(107, 143, 163, 0.42)" },
+      { char: "歌", x: 0, y: 0, tx: 0, ty: 0, wander: Math.PI * 1.28, color: "#d4b060", glow: "rgba(212, 176, 96, 0.42)" }
+    ];
+
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const stage = document.getElementById("canvasStage");
+    const offCanvas = document.createElement("canvas");
+    const offCtx = offCanvas.getContext("2d");
+
+    let W;
+    let H;
+    let DPR;
+    let prepared = null;
+    let charProfiles = [];
+    let dragging = null;
+
+    function clampBigChar(item) {
+      const margin = CHAR_SIZE * 0.52;
+      item.tx = Math.max(margin, Math.min(W - margin, item.tx));
+      item.ty = Math.max(margin, Math.min(H - margin, item.ty));
+    }
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = Math.max(window.innerHeight * 0.86, 660);
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
+      stage.style.height = `${H}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function computeCharProfile(char) {
+      const pad = Math.ceil(CHAR_SIZE * 1.55);
+      offCanvas.width = pad * 2;
+      offCanvas.height = pad * 2;
+      offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+      offCtx.font = CHAR_FONT;
+      offCtx.textBaseline = "middle";
+      offCtx.textAlign = "center";
+      offCtx.fillStyle = "#fff";
+      offCtx.fillText(char, pad, pad);
+
+      const img = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      const profile = new Map();
+
+      for (let py = 0; py < offCanvas.height; py++) {
+        let left = -1;
+        let right = -1;
+        for (let px = 0; px < offCanvas.width; px++) {
+          const alpha = img.data[(py * offCanvas.width + px) * 4 + 3];
+          if (alpha > 44) {
+            if (left === -1) left = px;
+            right = px;
+          }
+        }
+        if (left !== -1) {
+          profile.set(py, { left: left - pad, right: right - pad });
+        }
+      }
+
+      return profile;
+    }
+
+    function buildAllProfiles() {
+      charProfiles = bigChars.map((item) => computeCharProfile(item.char));
+    }
+
+    function prepareText() {
+      if (!prepareWithSegments) return;
+      prepared = NOTE_LINES.map((line) => prepareWithSegments(line, NOTE_FONT));
+    }
+
+    function getObstacleSpans(canvasY) {
+      const spans = [];
+
+      for (let i = 0; i < bigChars.length; i++) {
+        const item = bigChars[i];
+        const relY = Math.round(canvasY - item.y + CHAR_SIZE * 1.55);
+        const slice = charProfiles[i]?.get(relY);
+        if (slice) {
+          spans.push({
+            left: item.x + slice.left - 8,
+            right: item.x + slice.right + 8
+          });
+        }
+      }
+
+      if (spans.length === 0) return [];
+
+      spans.sort((a, b) => a.left - b.left);
+      const merged = [spans[0]];
+
+      for (let i = 1; i < spans.length; i++) {
+        const last = merged[merged.length - 1];
+        if (spans[i].left <= last.right + 10) {
+          last.right = Math.max(last.right, spans[i].right);
+        } else {
+          merged.push({ ...spans[i] });
+        }
+      }
+
+      return merged;
+    }
+
+    function computeColumns() {
+      const maxW = Math.min(W * 0.58, 720);
+      return [{ x: (W - maxW) / 2, w: maxW }];
+    }
+
+    function drawBigChars() {
+      for (const item of bigChars) {
+        ctx.save();
+        ctx.font = CHAR_FONT;
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        ctx.shadowColor = item.glow;
+        ctx.shadowBlur = CHAR_SIZE * 0.5;
+        ctx.fillStyle = item.color;
+        ctx.globalAlpha = 0.16;
+        ctx.fillText(item.char, item.x, item.y);
+        ctx.shadowBlur = CHAR_SIZE * 0.18;
+        ctx.globalAlpha = 0.42;
+        ctx.fillText(item.char, item.x, item.y);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.82;
+        ctx.fillText(item.char, item.x, item.y);
+        ctx.restore();
+      }
+    }
+
+    function drawRules() {
+    }
+
+    function render() {
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.fillStyle = "#08080f";
+      ctx.fillRect(0, 0, W, H);
+      drawRules();
+
+      if (!prepared || !layoutNextLineRange) {
+        ctx.fillStyle = "rgba(232, 228, 220, 0.62)";
+        ctx.font = FONT;
+        ctx.textAlign = "center";
+        ctx.fillText("Pretext 正在加载...", W / 2, H / 2);
+        drawBigChars();
+        return;
+      }
+
+      const cols = computeColumns();
+      const maxY = H - 22;
+      ctx.font = FONT;
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+      drawTitle(cols[0], 42);
+      drawPoemLines(cols[0], 174);
+      drawNote(cols[0], 174 + POEM_LINES.length * LINE_HEIGHT + 38, maxY);
+
+      drawBigChars();
+    }
+
+    function drawTextAroundSpans(text, font, color, x, y, width, lineHeight = LINE_HEIGHT) {
+      const preparedLine = prepareWithSegments(text, font);
+      const spans = getObstacleSpans(y + lineHeight / 2);
+      const colRight = x + width;
+      let cursor = { segmentIndex: 0, graphemeIndex: 0 };
+      let gapStart = x;
+      let placedAny = false;
+
+      ctx.font = font;
+      ctx.fillStyle = color;
+
+      if (spans.length === 0) {
+        const range = layoutNextLineRange(preparedLine, cursor, width);
+        if (range) ctx.fillText(materializeLineRange(preparedLine, range).text, x, y);
+        return;
+      }
+
+      for (const span of spans) {
+        if (span.left >= colRight) break;
+        if (span.right <= gapStart) continue;
+        const gapEnd = Math.min(span.left, colRight);
+        const gapW = gapEnd - gapStart;
+        if (gapW > 28) {
+          const range = layoutNextLineRange(preparedLine, cursor, gapW);
+          if (range) {
+            ctx.fillText(materializeLineRange(preparedLine, range).text, gapStart, y);
+            cursor = range.end;
+            placedAny = true;
+          }
+        }
+        gapStart = Math.max(gapStart, Math.min(span.right, colRight));
+      }
+
+      if (gapStart < colRight - 28) {
+        const range = layoutNextLineRange(preparedLine, cursor, colRight - gapStart);
+        if (range) {
+          ctx.fillText(materializeLineRange(preparedLine, range).text, gapStart, y);
+          placedAny = true;
+        }
+      }
+
+      if (!placedAny) {
+        ctx.fillText(text, x, y);
+      }
+    }
+
+    function drawTitle(col, y) {
+      const titleW = Math.min(col.w, 430);
+      const titleX = col.x + (col.w - titleW) / 2;
+      const titleCenter = titleX + titleW / 2;
+      ctx.save();
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+
+      ctx.font = TITLE_FONT;
+      const first = "大";
+      const second = "风";
+      const third = "歌";
+      const firstW = ctx.measureText(first).width;
+      ctx.font = TITLE_WIND_FONT;
+      const secondW = ctx.measureText(second).width;
+      ctx.font = TITLE_FONT;
+      const thirdW = ctx.measureText(third).width;
+      const startX = titleCenter - (firstW + secondW + thirdW) / 2;
+
+      ctx.font = TITLE_FONT;
+      ctx.fillStyle = "#f0ebe0";
+      ctx.fillText(first, startX, y);
+      ctx.font = TITLE_WIND_FONT;
+      ctx.fillStyle = "#c9a050";
+      ctx.fillText(second, startX + firstW, y);
+      ctx.font = TITLE_FONT;
+      ctx.fillStyle = "#f0ebe0";
+      ctx.fillText(third, startX + firstW + secondW, y);
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(201, 160, 80, 0.45)";
+      ctx.font = AUTHOR_FONT;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText("汉高祖 · 刘邦", col.x + col.w / 2, y + 88);
+      ctx.fillStyle = "rgba(201, 160, 80, 0.22)";
+      ctx.fillRect(col.x + col.w / 2 - 52, y + 122, 104, 1);
+      ctx.restore();
+    }
+
+    function drawPoemLines(col, startY) {
+      let y = startY;
+      for (const line of POEM_LINES) {
+        drawTextAroundSpans(line, FONT, "#f0ebe0", col.x, y, col.w);
+        y += LINE_HEIGHT;
+      }
+    }
+
+    function drawNote(col, startY, maxY) {
+      ctx.font = NOTE_FONT;
+      ctx.fillStyle = "rgba(232, 228, 220, 0.52)";
+      let y = startY;
+      for (const preparedLine of prepared) {
+        let cursor = { segmentIndex: 0, graphemeIndex: 0 };
+        while (y < maxY) {
+          const range = layoutNextLineRange(preparedLine, cursor, col.w);
+          if (!range) break;
+          const line = materializeLineRange(preparedLine, range).text;
+          if (line) ctx.fillText(line, col.x, y);
+          cursor = range.end;
+          y += 31;
+        }
+        y += 8;
+      }
+    }
+
+    function animate() {
+      for (const item of bigChars) {
+        item.wander += (Math.random() - 0.5) * 0.02;
+        item.tx += Math.cos(item.wander) * 0.22;
+        item.ty += Math.sin(item.wander * 1.3) * 0.22;
+        clampBigChar(item);
+        item.x += (item.tx - item.x) * 0.045;
+        item.y += (item.ty - item.y) * 0.045;
+      }
+
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    function findChar(mx, my) {
+      for (const item of bigChars) {
+        const dx = mx - item.x;
+        const dy = my - item.y;
+        if (Math.sqrt(dx * dx + dy * dy) < CHAR_SIZE * 0.72) return item;
+      }
+      return null;
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const item = findChar(event.clientX - rect.left, event.clientY - rect.top);
+      if (item) {
+        dragging = item;
+        canvas.style.cursor = "grabbing";
+      }
+    });
+
+    window.addEventListener("pointermove", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = event.clientX - rect.left;
+      const my = event.clientY - rect.top;
+
+      if (dragging) {
+        dragging.tx = mx;
+        dragging.ty = my;
+        clampBigChar(dragging);
+        dragging.x = dragging.tx;
+        dragging.y = dragging.ty;
+      } else {
+        canvas.style.cursor = findChar(mx, my) ? "grab" : "default";
+      }
+    });
+
+    window.addEventListener("pointerup", () => {
+      dragging = null;
+      canvas.style.cursor = "default";
+    });
+
+    const orb1 = document.querySelector(".orb-1");
+    const orb2 = document.querySelector(".orb-2");
+    const orb3 = document.querySelector(".orb-3");
+
+    document.addEventListener("mousemove", (event) => {
+      const rx = (event.clientX / window.innerWidth - 0.5) * 2;
+      const ry = (event.clientY / window.innerHeight - 0.5) * 2;
+      if (orb1) orb1.style.transform = `translate(${rx * 18}px, ${ry * 18}px)`;
+      if (orb2) orb2.style.transform = `translate(${rx * -14}px, ${ry * -14}px)`;
+      if (orb3) orb3.style.transform = `translate(${rx * 8}px, ${ry * -10}px)`;
+    });
+
+    function placeBigChars() {
+      const zoneW = (W - CHAR_SIZE * 2) / bigChars.length;
+      for (let i = 0; i < bigChars.length; i++) {
+        bigChars[i].x = bigChars[i].tx = CHAR_SIZE + zoneW * i + zoneW / 2;
+        bigChars[i].y = bigChars[i].ty = H * 0.46 + (i - 1) * 36;
+      }
+    }
+
+    window.addEventListener("resize", () => {
+      resize();
+      buildAllProfiles();
+      prepareText();
+      placeBigChars();
+    });
+
+    resize();
+    buildAllProfiles();
+    prepareText();
+    placeBigChars();
+
+    document.fonts.ready.then(() => {
+      buildAllProfiles();
+      prepareText();
+      placeBigChars();
+    });
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
