@@ -163,6 +163,7 @@
 
     const badges = [];
     const rains = [];
+    // active 控制小球是否追随鼠标，inside 单独控制角落文字雨触发。
     const pointer = { x: BASE_W * 0.22, y: BASE_H * 0.46, active: false, dragging: false, inside: false };
     const creature = {
       x: BASE_W * 0.22,
@@ -353,6 +354,7 @@
       creature.angle += 0.035;
 
       for (const badge of badges) updateBadge(badge);
+      // 触发区域不绘制出来，只保留四角作为隐藏交互入口。
       const corner = getCorner(pointer.x, pointer.y);
       if (pointer.inside && corner) triggerCornerEffect(corner, now);
       updateTextRain(now);
@@ -426,6 +428,7 @@
       const overflow = rains.length + count - MAX_RAIN_DROPS;
       if (overflow > 0) rains.splice(0, overflow);
 
+      // 用分栏随机代替纯随机，让同样数量的文字更均匀铺满画布。
       const laneWidth = (BASE_W - 48) / count;
 
       for (let i = 0; i < count; i++) {
