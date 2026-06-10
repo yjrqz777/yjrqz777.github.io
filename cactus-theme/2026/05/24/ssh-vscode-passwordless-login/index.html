@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="关键词：VSCode SSH、SSH 无法免密登录、SSH 免密登录失败  1. sshd 配置文件检查确保 &#x2F;etc&#x2F;ssh&#x2F;sshd_config 中公钥登录已开启： 1PubkeyAuthentication yes  2. 生成公钥并上传到服务器2.1 命令行方式（推荐）123ssh-copy-id 用户名@ip地址# 例如ssh-copy-id mi@192.168.0.1  2.2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSH 免密登录 VSCode（附 Debug 排查）">
+<meta property="og:url" content="http://example.com/2026/05/24/ssh-vscode-passwordless-login/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="关键词：VSCode SSH、SSH 无法免密登录、SSH 免密登录失败  1. sshd 配置文件检查确保 &#x2F;etc&#x2F;ssh&#x2F;sshd_config 中公钥登录已开启： 1PubkeyAuthentication yes  2. 生成公钥并上传到服务器2.1 命令行方式（推荐）123ssh-copy-id 用户名@ip地址# 例如ssh-copy-id mi@192.168.0.1  2.2">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-05-24T05:41:31.000Z">
+<meta property="article:modified_time" content="2026-05-24T05:41:35.223Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="SSH">
+<meta property="article:tag" content="VSCode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="运维">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>SSH 免密登录 VSCode（附 Debug 排查）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/05/24/stm32-hal-vscode-header-issue/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/05/08/pretext-letter-badges-port-record/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/05/24/ssh-vscode-passwordless-login/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&text=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&is_video=false&description=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=SSH 免密登录 VSCode（附 Debug 排查）&body=Check out this article: http://example.com/2026/05/24/ssh-vscode-passwordless-login/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&name=SSH 免密登录 VSCode（附 Debug 排查）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&t=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-sshd-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E6%A3%80%E6%9F%A5"><span class="toc-number">1.</span> <span class="toc-text">1. sshd 配置文件检查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%94%9F%E6%88%90%E5%85%AC%E9%92%A5%E5%B9%B6%E4%B8%8A%E4%BC%A0%E5%88%B0%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="toc-number">2.</span> <span class="toc-text">2. 生成公钥并上传到服务器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E5%91%BD%E4%BB%A4%E8%A1%8C%E6%96%B9%E5%BC%8F%EF%BC%88%E6%8E%A8%E8%8D%90%EF%BC%89"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 命令行方式（推荐）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E6%89%8B%E5%8A%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 手动方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Debug%EF%BC%9A%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95%E5%A4%B1%E8%B4%A5%E6%8E%92%E6%9F%A5"><span class="toc-number">3.</span> <span class="toc-text">3. Debug：免密登录失败排查</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B0%83%E6%95%B4%E6%97%A5%E5%BF%97%E7%BA%A7%E5%88%AB"><span class="toc-number">3.1.</span> <span class="toc-text">调整日志级别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%9F%A5%E7%9C%8B%E6%97%A5%E5%BF%97"><span class="toc-number">3.2.</span> <span class="toc-text">服务端查看日志</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%B0%83%E8%AF%95%E6%A8%A1%E5%BC%8F"><span class="toc-number">3.3.</span> <span class="toc-text">客户端调试模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF"><span class="toc-number">3.4.</span> <span class="toc-text">常见错误</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-%E6%9D%83%E9%99%90%E4%B8%8D%E5%AF%B9"><span class="toc-number">3.4.1.</span> <span class="toc-text">3.1 权限不对</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-%E7%94%A8-root-%E6%96%B0%E5%BB%BA%E4%BA%86-ssh-%E6%88%96-authorized-keys"><span class="toc-number">3.4.2.</span> <span class="toc-text">3.2 用 root 新建了 .ssh 或 authorized_keys</span></a></li></ol></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        SSH 免密登录 VSCode（附 Debug 排查）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-05-24T05:41:31.000Z" class="dt-published" itemprop="datePublished">2026-05-24</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Linux/" rel="tag">Linux</a>, <a class="p-category" href="/cactus-theme/tags/SSH/" rel="tag">SSH</a>, <a class="p-category" href="/cactus-theme/tags/VSCode/" rel="tag">VSCode</a>, <a class="p-category" href="/cactus-theme/tags/%E8%BF%90%E7%BB%B4/" rel="tag">运维</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <blockquote>
+<p>关键词：VSCode SSH、SSH 无法免密登录、SSH 免密登录失败</p>
+</blockquote>
+<h2 id="1-sshd-配置文件检查"><a href="#1-sshd-配置文件检查" class="headerlink" title="1. sshd 配置文件检查"></a>1. sshd 配置文件检查</h2><p>确保 <code>/etc/ssh/sshd_config</code> 中公钥登录已开启：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PubkeyAuthentication yes</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-生成公钥并上传到服务器"><a href="#2-生成公钥并上传到服务器" class="headerlink" title="2. 生成公钥并上传到服务器"></a>2. 生成公钥并上传到服务器</h2><h3 id="2-1-命令行方式（推荐）"><a href="#2-1-命令行方式（推荐）" class="headerlink" title="2.1 命令行方式（推荐）"></a>2.1 命令行方式（推荐）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id 用户名@ip地址</span><br><span class="line"><span class="comment"># 例如</span></span><br><span class="line">ssh-copy-id mi@192.168.0.1</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-手动方式"><a href="#2-2-手动方式" class="headerlink" title="2.2 手动方式"></a>2.2 手动方式</h3><p>找到本地的 <code>~/.ssh/id_rsa.pub</code>，将其内容复制到服务器的 <code>~/.ssh/authorized_keys</code>。</p>
+<p>确保是<strong>普通用户</strong>新建 <code>~/.ssh/authorized_keys</code>（不要用 root）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> ~/.ssh</span><br><span class="line"><span class="built_in">touch</span> ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+
+<p>复制也好、上传文件也罢，只要将<strong>本地</strong> <code>id_rsa.pub</code> 的内容写入<strong>服务器</strong> <code>authorized_keys</code> 即可。</p>
+<h2 id="3-Debug：免密登录失败排查"><a href="#3-Debug：免密登录失败排查" class="headerlink" title="3. Debug：免密登录失败排查"></a>3. Debug：免密登录失败排查</h2><p>主要根据 sshd 输出信息定位问题。</p>
+<h3 id="调整日志级别"><a href="#调整日志级别" class="headerlink" title="调整日志级别"></a>调整日志级别</h3><p>服务器端 <code>/etc/ssh/sshd_config</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">LogLevel DEBUG</span><br></pre></td></tr></table></figure>
+
+<h3 id="服务端查看日志"><a href="#服务端查看日志" class="headerlink" title="服务端查看日志"></a>服务端查看日志</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">tail</span> -f -n 500 /var/log/auth.log | grep sshd</span><br></pre></td></tr></table></figure>
+
+<h3 id="客户端调试模式"><a href="#客户端调试模式" class="headerlink" title="客户端调试模式"></a>客户端调试模式</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -vvv 192.168.0.1</span><br></pre></td></tr></table></figure>
+
+<h3 id="常见错误"><a href="#常见错误" class="headerlink" title="常见错误"></a>常见错误</h3><p>当出现 <code>authorized_keys&#39;: Permission denied</code> 时，通常有两种原因：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sshd[28422]: debug1: Could not open authorized keys &#x27;/home/mi/.ssh/authorized_keys&#x27;: Permission denied</span><br><span class="line">sshd[28422]: debug1: restore_uid: 0/0</span><br><span class="line">sshd[28422]: debug1: temporarily_use_uid: 1000/1000 (e=0/0)</span><br><span class="line">sshd[28422]: debug1: trying public key file /home/mi/.ssh/authorized_keys2</span><br><span class="line">sshd[28422]: debug1: Could not open authorized keys &#x27;/home/mi/.ssh/authorized_keys2&#x27;: Permission denied</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-1-权限不对"><a href="#3-1-权限不对" class="headerlink" title="3.1 权限不对"></a>3.1 权限不对</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 700 ~/.ssh</span><br><span class="line"><span class="built_in">chmod</span> 600 ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-用-root-新建了-ssh-或-authorized-keys"><a href="#3-2-用-root-新建了-ssh-或-authorized-keys" class="headerlink" title="3.2 用 root 新建了 .ssh 或 authorized_keys"></a>3.2 用 root 新建了 .ssh 或 authorized_keys</h4><p>请删除 <code>.ssh</code> 及 <code>authorized_keys</code>，确保是<strong>普通用户</strong>重新创建。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-sshd-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E6%A3%80%E6%9F%A5"><span class="toc-number">1.</span> <span class="toc-text">1. sshd 配置文件检查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%94%9F%E6%88%90%E5%85%AC%E9%92%A5%E5%B9%B6%E4%B8%8A%E4%BC%A0%E5%88%B0%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="toc-number">2.</span> <span class="toc-text">2. 生成公钥并上传到服务器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E5%91%BD%E4%BB%A4%E8%A1%8C%E6%96%B9%E5%BC%8F%EF%BC%88%E6%8E%A8%E8%8D%90%EF%BC%89"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 命令行方式（推荐）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E6%89%8B%E5%8A%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 手动方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Debug%EF%BC%9A%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95%E5%A4%B1%E8%B4%A5%E6%8E%92%E6%9F%A5"><span class="toc-number">3.</span> <span class="toc-text">3. Debug：免密登录失败排查</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B0%83%E6%95%B4%E6%97%A5%E5%BF%97%E7%BA%A7%E5%88%AB"><span class="toc-number">3.1.</span> <span class="toc-text">调整日志级别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%9F%A5%E7%9C%8B%E6%97%A5%E5%BF%97"><span class="toc-number">3.2.</span> <span class="toc-text">服务端查看日志</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%B0%83%E8%AF%95%E6%A8%A1%E5%BC%8F"><span class="toc-number">3.3.</span> <span class="toc-text">客户端调试模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF"><span class="toc-number">3.4.</span> <span class="toc-text">常见错误</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-%E6%9D%83%E9%99%90%E4%B8%8D%E5%AF%B9"><span class="toc-number">3.4.1.</span> <span class="toc-text">3.1 权限不对</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-%E7%94%A8-root-%E6%96%B0%E5%BB%BA%E4%BA%86-ssh-%E6%88%96-authorized-keys"><span class="toc-number">3.4.2.</span> <span class="toc-text">3.2 用 root 新建了 .ssh 或 authorized_keys</span></a></li></ol></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/05/24/ssh-vscode-passwordless-login/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&text=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&is_video=false&description=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=SSH 免密登录 VSCode（附 Debug 排查）&body=Check out this article: http://example.com/2026/05/24/ssh-vscode-passwordless-login/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&title=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&name=SSH 免密登录 VSCode（附 Debug 排查）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/05/24/ssh-vscode-passwordless-login/&t=SSH 免密登录 VSCode（附 Debug 排查）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

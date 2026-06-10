@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="记录 Letter Badges canvas 交互 demo 的复刻过程、参数调试和性能取舍。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Letter Badges 复刻记录">
+<meta property="og:url" content="http://example.com/2026/05/08/pretext-letter-badges-port-record/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="记录 Letter Badges canvas 交互 demo 的复刻过程、参数调试和性能取舍。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-05-08T15:20:00.000Z">
+<meta property="article:modified_time" content="2026-05-08T13:41:47.980Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="Pretext">
+<meta property="article:tag" content="Canvas">
+<meta property="article:tag" content="复刻记录">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>Letter Badges 复刻记录</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/05/24/ssh-vscode-passwordless-login/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/05/07/pretext-letter-badges/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/05/08/pretext-letter-badges-port-record/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&text=Letter Badges 复刻记录"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&is_video=false&description=Letter Badges 复刻记录"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Letter Badges 复刻记录&body=Check out this article: http://example.com/2026/05/08/pretext-letter-badges-port-record/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&name=Letter Badges 复刻记录&description=&lt;p&gt;这篇记录整理今天复刻 Letter Badges 交互 demo 的过程。目标不是完全照搬截图，而是用 &lt;code&gt;canvas&lt;/code&gt; 做出类似的粒子扰动、鼠标追随和隐藏角落彩蛋。&lt;/p&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/05/08/pretext-letter-badges-port-record/&t=Letter Badges 复刻记录"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E5%88%BB%E7%9B%AE%E6%A0%87"><span class="toc-number">1.</span> <span class="toc-text">复刻目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B2%92%E5%AD%90%E5%BE%BD%E7%AB%A0"><span class="toc-number">2.</span> <span class="toc-text">粒子徽章</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%94%9F%E7%89%A9%E8%BF%BD%E9%9A%8F%E9%BC%A0%E6%A0%87"><span class="toc-number">3.</span> <span class="toc-text">小生物追随鼠标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9A%90%E8%97%8F%E8%A7%92%E8%90%BD%E5%92%8C%E5%BD%A9%E8%9B%8B"><span class="toc-number">4.</span> <span class="toc-text">隐藏角落和彩蛋</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%87%E5%AD%97%E9%9B%A8%E8%B0%83%E8%AF%95"><span class="toc-number">5.</span> <span class="toc-text">文字雨调试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E7%BB%8F%E9%AA%8C"><span class="toc-number">6.</span> <span class="toc-text">性能经验</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8A%E5%A4%A9%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="toc-number">7.</span> <span class="toc-text">今天的结论</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Letter Badges 复刻记录
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-05-08T15:20:00.000Z" class="dt-published" itemprop="datePublished">2026-05-08</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Canvas/" rel="tag">Canvas</a>, <a class="p-category" href="/cactus-theme/tags/Pretext/" rel="tag">Pretext</a>, <a class="p-category" href="/cactus-theme/tags/%E5%A4%8D%E5%88%BB%E8%AE%B0%E5%BD%95/" rel="tag">复刻记录</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <p>这篇记录整理今天复刻 Letter Badges 交互 demo 的过程。目标不是完全照搬截图，而是用 <code>canvas</code> 做出类似的粒子扰动、鼠标追随和隐藏角落彩蛋。</p>
+<span id="more"></span>
+
+<h2 id="复刻目标"><a href="#复刻目标" class="headerlink" title="复刻目标"></a>复刻目标</h2><p>最初的画面重点有三个：</p>
+<ol>
+<li>背景里铺满圆形字母徽章；</li>
+<li>黑色小生物经过时，附近徽章被推开并变成彩色；</li>
+<li>整体保持轻微漂浮感，而不是静态排版。</li>
+</ol>
+<p>后续又加了一个隐藏交互：鼠标进入四个角时触发文字雨。上方角落出现“我想你了”，下方角落出现 <code>LOVE</code>。</p>
+<h2 id="粒子徽章"><a href="#粒子徽章" class="headerlink" title="粒子徽章"></a>粒子徽章</h2><p>徽章没有用 DOM 元素，而是全部放在 <code>canvas</code> 里绘制。每个徽章都保存自己的位置、原始位置、速度、旋转角度、颜色和漂移方向。</p>
+<p>这样做的好处是状态很集中，适合每帧统一更新：</p>
+<ul>
+<li>小生物靠近时，根据距离给徽章一个向外的斥力；</li>
+<li>徽章离开原位后，用一个很小的回弹力拉回 <code>homeX/homeY</code>；</li>
+<li>再叠加轻微随机漂移，让画面不死板；</li>
+<li>靠近小生物的徽章画成彩色实心圆，远处则保留灰色描边。</li>
+</ul>
+<p>一开始徽章数量偏多，画面虽然密，但和文字雨叠加后容易增加绘制压力。后来把徽章密度减半，视觉上更清爽，也给后面的文字雨留出空间。</p>
+<h2 id="小生物追随鼠标"><a href="#小生物追随鼠标" class="headerlink" title="小生物追随鼠标"></a>小生物追随鼠标</h2><p>最初的小生物是直接跟着鼠标位置移动，反应太硬。后来改成 PID 风格的追随算法：鼠标只是目标点，小生物用比例项、积分项和微分项慢慢靠近。</p>
+<p>这个改动让小生物更像一个有惯性的活物，但也暴露了一个问题：如果角落触发逻辑看的是小生物位置，PID 的延迟会导致鼠标已经进入角落，文字雨却还没出现。</p>
+<p>最后的处理是把“触发逻辑”和“视觉表现”分开：</p>
+<ul>
+<li>鼠标位置负责判断是否进入隐藏角落；</li>
+<li>小生物位置只负责视觉运动和推开徽章；</li>
+<li><code>pointer.active</code> 控制小生物是否追随鼠标；</li>
+<li><code>pointer.inside</code> 控制鼠标是否还在画布内，从而决定文字雨能不能触发。</li>
+</ul>
+<p>这个拆分很重要：用户期待的是“我把鼠标移到角落就触发”，而不是“等小生物慢慢追到角落才触发”。</p>
+<h2 id="隐藏角落和彩蛋"><a href="#隐藏角落和彩蛋" class="headerlink" title="隐藏角落和彩蛋"></a>隐藏角落和彩蛋</h2><p>一开始四个角画了半透明色块，用来提示触发区域。实际看起来有点破坏画面，于是把区域隐藏，只保留逻辑判断。</p>
+<p>四角判断很简单：根据 <code>CORNER_SIZE</code> 判断鼠标是否同时靠近左右边和上下边。左上、右上触发中文文字雨；左下、右下触发英文文字雨。</p>
+<p>这里有一个细节：如果只在 <code>pointermove</code> 里触发，鼠标停住后文字雨就不会继续出现。所以最终把持续触发放进每帧 <code>update()</code> 里，只要鼠标还在角落，就按照冷却时间重复生成。</p>
+<h2 id="文字雨调试"><a href="#文字雨调试" class="headerlink" title="文字雨调试"></a>文字雨调试</h2><p>文字雨经历了几轮调整：</p>
+<ol>
+<li><strong>从角落附近生成</strong>：效果太集中，不像满屏文字雨；</li>
+<li><strong>全屏随机生成</strong>：能铺满，但容易局部拥挤；</li>
+<li><strong>减少数量</strong>：不卡了，但画面有时显得空；</li>
+<li><strong>分栏随机生成</strong>：不增加数量，也能更均匀地覆盖整个画布。</li>
+</ol>
+<p>最终使用横向分栏：每一批文字雨按画布宽度分成若干 lane，每个 lane 里随机一个 x 坐标。这样数量不变，但分布比纯随机稳定。</p>
+<h2 id="性能经验"><a href="#性能经验" class="headerlink" title="性能经验"></a>性能经验</h2><p>这次最明显的性能问题来自文字雨。<code>canvas</code> 里每个雨滴每帧都要更新位置、旋转、透明度，并执行 <code>fillText()</code>。如果再加上 <code>shadowBlur</code>，成本会更高。</p>
+<p>当鼠标停在角落时，文字雨会持续生成。如果只生成不限制，总数量会越来越多，每帧绘制压力也会越来越大。所以最后加了两个限制：</p>
+<ul>
+<li>降低每次生成的文字数量；</li>
+<li>设置 <code>MAX_RAIN_DROPS</code>，超过上限就删除最早的雨滴。</li>
+</ul>
+<p>这个经验可以复用到其他 canvas 小 demo：粒子效果可以持续生成，但一定要有生命周期和总量上限。</p>
+<h2 id="今天的结论"><a href="#今天的结论" class="headerlink" title="今天的结论"></a>今天的结论</h2><p>这次复刻最大的收获是：交互 demo 不能只看“代码逻辑对不对”，还要看用户直觉是否一致。</p>
+<p>PID 追随让运动更自然，但不能让触发反馈变慢；文字雨要铺满画布，但不能靠无限增加数量解决；隐藏区域可以存在，但不一定要画出来。最后的实现更像是几组取舍叠在一起：视觉上柔和，触发上直接，性能上有上限。</p>
+<p>Demo 页面：<a href="/pretext-demo/letter-badges.html">&#x2F;pretext-demo&#x2F;letter-badges.html</a></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%8D%E5%88%BB%E7%9B%AE%E6%A0%87"><span class="toc-number">1.</span> <span class="toc-text">复刻目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B2%92%E5%AD%90%E5%BE%BD%E7%AB%A0"><span class="toc-number">2.</span> <span class="toc-text">粒子徽章</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%94%9F%E7%89%A9%E8%BF%BD%E9%9A%8F%E9%BC%A0%E6%A0%87"><span class="toc-number">3.</span> <span class="toc-text">小生物追随鼠标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9A%90%E8%97%8F%E8%A7%92%E8%90%BD%E5%92%8C%E5%BD%A9%E8%9B%8B"><span class="toc-number">4.</span> <span class="toc-text">隐藏角落和彩蛋</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%87%E5%AD%97%E9%9B%A8%E8%B0%83%E8%AF%95"><span class="toc-number">5.</span> <span class="toc-text">文字雨调试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E7%BB%8F%E9%AA%8C"><span class="toc-number">6.</span> <span class="toc-text">性能经验</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8A%E5%A4%A9%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="toc-number">7.</span> <span class="toc-text">今天的结论</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/05/08/pretext-letter-badges-port-record/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&text=Letter Badges 复刻记录"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&is_video=false&description=Letter Badges 复刻记录"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Letter Badges 复刻记录&body=Check out this article: http://example.com/2026/05/08/pretext-letter-badges-port-record/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&title=Letter Badges 复刻记录"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/05/08/pretext-letter-badges-port-record/&name=Letter Badges 复刻记录&description=&lt;p&gt;这篇记录整理今天复刻 Letter Badges 交互 demo 的过程。目标不是完全照搬截图，而是用 &lt;code&gt;canvas&lt;/code&gt; 做出类似的粒子扰动、鼠标追随和隐藏角落彩蛋。&lt;/p&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/05/08/pretext-letter-badges-port-record/&t=Letter Badges 复刻记录"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
