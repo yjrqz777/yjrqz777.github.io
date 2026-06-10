@@ -1,4 +1,4 @@
-export default class CanvasService {
+<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script>export default class CanvasService {
     static getCanvasFromImage(image, width, height) {
         const canvas = document.createElement('canvas'),
             context = canvas.getContext('2d');

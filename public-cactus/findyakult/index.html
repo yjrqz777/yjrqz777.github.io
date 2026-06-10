@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>寻找养乐多</title>
+  <style>
+    :root {
+      --bg: #f3f5f7;
+      --card: #ffffff;
+      --board-bg: #d1d5db;
+      --cell-bg: #9ca3af;
+      --cell-revealed: #f9fafb;
+      --cell-mine: #fca5a5;
+      --cell-hint: #fef3c7;
+      --text-main: #1f2937;
+      --text-sub: #4b5563;
+      --text-tips: #6b7280;
+      --primary: #2563eb;
+      --mode-open: #f59e0b;
+      --mode-flag: #b45309;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --cell-size: clamp(30px, min(8.8vw, 5.5vh), 56px);
+      --cell-gap: clamp(2px, 0.4vw, 4px);
+      --font: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #fcfdff 0%, var(--bg) 58%);
+      color: var(--text-main);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    .ms-page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid !important;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .ms-header {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 700;
+    }
+
+    .meta {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      color: var(--text-sub);
+      font-size: clamp(14px, 2vw, 18px);
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: clamp(14px, 2vw, 18px);
+      min-height: 22px;
+    }
+
+    .tips {
+      margin-top: 8px;
+      color: var(--text-tips);
+      font-size: clamp(12px, 1.7vw, 15px);
+      line-height: 1.5;
+    }
+
+    .secret-row {
+      margin-top: 14px;
+    }
+
+    .secret-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius-md);
+      background: #f3f4f6;
+      color: #111827;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .secret-input:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: var(--radius-md);
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 15px;
+      cursor: pointer;
+      min-height: 42px;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.mode {
+      flex: 1 1 240px;
+      background: var(--mode-open);
+    }
+
+    .btn.mode.flag-mode {
+      background: var(--mode-flag);
+    }
+
+    .btn.restart {
+      flex: 1 1 140px;
+      background: var(--primary);
+    }
+
+    .ms-board-wrap {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .ms-board {
+      background: var(--board-bg);
+      border-radius: var(--radius-lg);
+      padding: var(--cell-gap);
+      display: grid;
+      gap: var(--cell-gap);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .ms-row {
+      display: grid;
+      grid-template-columns: repeat(9, var(--cell-size));
+      gap: var(--cell-gap);
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--cell-bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(15px, 2.5vw, 26px);
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .cell.revealed {
+      background: var(--cell-revealed);
+      cursor: default;
+    }
+
+    .cell.mine {
+      background: var(--cell-mine);
+    }
+
+    .cell.hint {
+      background: var(--cell-hint);
+    }
+
+    .mine-icon {
+      width: 65%;
+      height: 65%;
+    }
+
+    .n1 { color: #2563eb; }
+    .n2 { color: #16a34a; }
+    .n3 { color: #dc2626; }
+    .n4 { color: #1d4ed8; }
+    .n5 { color: #7c2d12; }
+    .n6 { color: #0f766e; }
+    .n7 { color: #0f172a; }
+    .n8 { color: #111827; }
+
+    .settlement-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 20;
+    }
+
+    .settlement-mask.show {
+      display: flex;
+    }
+
+    .settlement-panel {
+      width: min(92vw, 420px);
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .settlement-icon {
+      width: 84px;
+      height: 84px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .settlement-title {
+      margin-top: 10px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .settlement-text {
+      margin-top: 12px;
+      color: #374151;
+      line-height: 1.5;
+      font-size: 16px;
+      min-height: 24px;
+    }
+
+    .settlement-btn {
+      margin-top: 18px;
+      width: 100%;
+      background: var(--primary);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: rgba(17, 24, 39, 0.92);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    /* Keep vertical stacking on all screen sizes. */
+  </style>
+</head>
+<body>
+  <main class="ms-page">
+    <section class="ms-header">
+      <h1 class="title">寻找养乐多</h1>
+      <div class="meta">
+        <span id="minesLabel">养乐多 10</span>
+        <span id="flagsLabel">标记 0</span>
+      </div>
+      <div id="statusText" class="status">点击格子开始寻找</div>
+      <div class="tips">长按格子可标记，或切到“标记模式”后点击标记。桌面端可用右键标记。</div>
+      <div class="secret-row">
+        <input
+          id="secretInput"
+          class="secret-input"
+          type="text"
+          placeholder="输入密钥"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <div class="actions">
+        <button id="modeBtn" class="btn mode" type="button">当前：翻开模式</button>
+        <button id="restartBtn" class="btn restart" type="button">重新开始</button>
+      </div>
+    </section>
+
+    <section class="ms-board-wrap">
+      <div id="board" class="ms-board" aria-label="扫雷棋盘"></div>
+    </section>
+  </main>
+
+  <div id="settlementMask" class="settlement-mask" role="dialog" aria-modal="true">
+    <div class="settlement-panel">
+      <img class="settlement-icon" src="./assets/Yakult.svg" alt="养乐多" />
+      <div class="settlement-title">结算提示</div>
+      <div id="settlementText" class="settlement-text"></div>
+      <button id="closeSettlementBtn" class="btn settlement-btn" type="button">知道了</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (function () {
+      const ROWS = 9;
+      const COLS = 9;
+      const MINES = 10;
+      const LONG_PRESS_MS = 360;
+
+      const boardEl = document.getElementById("board");
+      const modeBtn = document.getElementById("modeBtn");
+      const restartBtn = document.getElementById("restartBtn");
+      const secretInput = document.getElementById("secretInput");
+      const minesLabelEl = document.getElementById("minesLabel");
+      const flagsLabelEl = document.getElementById("flagsLabel");
+      const statusTextEl = document.getElementById("statusText");
+      const settlementMaskEl = document.getElementById("settlementMask");
+      const settlementTextEl = document.getElementById("settlementText");
+      const closeSettlementBtn = document.getElementById("closeSettlementBtn");
+      const toastEl = document.getElementById("toast");
+
+      const state = {
+        board: [],
+        gameOver: false,
+        won: false,
+        flags: 0,
+        flagMode: false,
+        revealYakult: false,
+        statusText: "点击格子开始寻找"
+      };
+
+      let toastTimer = null;
+      let longPressTimer = null;
+
+      function createEmptyBoard() {
+        const board = [];
+        for (let r = 0; r < ROWS; r += 1) {
+          const row = [];
+          for (let c = 0; c < COLS; c += 1) {
+            row.push({
+              r,
+              c,
+              mine: false,
+              revealed: false,
+              flagged: false,
+              count: 0
+            });
+          }
+          board.push(row);
+        }
+        return board;
+      }
+
+      function inBounds(r, c) {
+        return r >= 0 && r < ROWS && c >= 0 && c < COLS;
+      }
+
+      function neighbors(r, c) {
+        const list = [];
+        for (let dr = -1; dr <= 1; dr += 1) {
+          for (let dc = -1; dc <= 1; dc += 1) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr;
+            const nc = c + dc;
+            if (inBounds(nr, nc)) list.push([nr, nc]);
+          }
+        }
+        return list;
+      }
+
+      function buildBoard() {
+        const board = createEmptyBoard();
+        let placed = 0;
+
+        while (placed < MINES) {
+          const r = Math.floor(Math.random() * ROWS);
+          const c = Math.floor(Math.random() * COLS);
+          if (!board[r][c].mine) {
+            board[r][c].mine = true;
+            placed += 1;
+          }
+        }
+
+        for (let r = 0; r < ROWS; r += 1) {
+          for (let c = 0; c < COLS; c += 1) {
+            if (board[r][c].mine) continue;
+            board[r][c].count = neighbors(r, c).filter(([nr, nc]) => board[nr][nc].mine).length;
+          }
+        }
+
+        return board;
+      }
+
+      function updateModeButton() {
+        if (state.flagMode) {
+          modeBtn.textContent = "当前：标记模式";
+          modeBtn.classList.add("flag-mode");
+        } else {
+          modeBtn.textContent = "当前：翻开模式";
+          modeBtn.classList.remove("flag-mode");
+        }
+      }
+
+      function updateHeader() {
+        minesLabelEl.textContent = "养乐多 " + MINES;
+        flagsLabelEl.textContent = "标记 " + state.flags;
+        statusTextEl.textContent = state.statusText;
+        updateModeButton();
+      }
+
+      function cellNumberClass(count) {
+        return count > 0 ? "n" + count : "";
+      }
+
+      function renderBoard() {
+        boardEl.innerHTML = "";
+        state.board.forEach((row, r) => {
+          const rowEl = document.createElement("div");
+          rowEl.className = "ms-row";
+          row.forEach((cell, c) => {
+            const cellEl = document.createElement("button");
+            cellEl.type = "button";
+            cellEl.className = "cell";
+            cellEl.dataset.r = String(r);
+            cellEl.dataset.c = String(c);
+            cellEl.setAttribute("aria-label", "格子 " + (r + 1) + "," + (c + 1));
+
+            if (cell.revealed) cellEl.classList.add("revealed");
+            if (cell.revealed && cell.mine) cellEl.classList.add("mine");
+            if (!cell.revealed && state.revealYakult && cell.mine) cellEl.classList.add("hint");
+
+            if (!cell.revealed && cell.flagged) {
+              cellEl.textContent = "🚩";
+            } else if ((!cell.revealed && state.revealYakult && cell.mine) || (cell.revealed && cell.mine)) {
+              const img = document.createElement("img");
+              img.className = "mine-icon";
+              img.alt = "养乐多";
+              img.src = "./assets/Yakult.svg";
+              cellEl.appendChild(img);
+            } else if (cell.revealed && cell.count > 0) {
+              cellEl.textContent = String(cell.count);
+              cellEl.classList.add(cellNumberClass(cell.count));
+            }
+
+            rowEl.appendChild(cellEl);
+          });
+          boardEl.appendChild(rowEl);
+        });
+      }
+
+      function render() {
+        updateHeader();
+        renderBoard();
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove("show");
+        }, 1500);
+      }
+
+      function floodReveal(sr, sc) {
+        const queue = [[sr, sc]];
+        while (queue.length) {
+          const [r, c] = queue.shift();
+          const cell = state.board[r][c];
+          if (cell.revealed || cell.flagged) continue;
+          cell.revealed = true;
+          if (cell.count !== 0) continue;
+          neighbors(r, c).forEach(([nr, nc]) => {
+            const next = state.board[nr][nc];
+            if (!next.revealed && !next.mine) queue.push([nr, nc]);
+          });
+        }
+      }
+
+      function revealAllMines() {
+        for (let r = 0; r < ROWS; r += 1) {
+          for (let c = 0; c < COLS; c += 1) {
+            if (state.board[r][c].mine) state.board[r][c].revealed = true;
+          }
+        }
+      }
+
+      function checkWin() {
+        let hidden = 0;
+        state.board.forEach((row) => {
+          row.forEach((cell) => {
+            if (!cell.revealed) hidden += 1;
+          });
+        });
+        return hidden === MINES;
+      }
+
+      function countMarkedYakult() {
+        let count = 0;
+        state.board.forEach((row) => {
+          row.forEach((cell) => {
+            if (cell.flagged && cell.mine) count += 1;
+          });
+        });
+        return count;
+      }
+
+      function showSettlement(won) {
+        const markedCount = countMarkedYakult();
+        let content = "";
+        if (won) {
+          content = "恭喜你找到全部养乐多了";
+        } else if (markedCount > 0) {
+          content = "养乐多逃跑了，只找到了标记的" + markedCount + "个养乐多";
+        } else {
+          content = "养乐多逃跑了";
+        }
+        settlementTextEl.textContent = content;
+        settlementMaskEl.classList.add("show");
+      }
+
+      function hideSettlement() {
+        settlementMaskEl.classList.remove("show");
+      }
+
+      function newGame() {
+        state.board = buildBoard();
+        state.gameOver = false;
+        state.won = false;
+        state.flags = 0;
+        state.flagMode = false;
+        state.revealYakult = false;
+        state.statusText = "点击格子开始寻找";
+        secretInput.value = "";
+        hideSettlement();
+        render();
+      }
+
+      function toggleFlag(r, c) {
+        if (state.gameOver || state.won) return;
+        const cell = state.board[r][c];
+        if (cell.revealed) return;
+        if (!cell.flagged && state.flags >= MINES) {
+          showToast("旗子最多10个");
+          return;
+        }
+
+        cell.flagged = !cell.flagged;
+        state.flags = state.board.flat().filter((item) => item.flagged).length;
+        state.statusText = "已标记 " + state.flags + "/" + MINES;
+        render();
+      }
+
+      function openCell(r, c) {
+        if (state.gameOver || state.won) return;
+        const cell = state.board[r][c];
+        if (cell.revealed || cell.flagged) return;
+
+        if (cell.mine) {
+          revealAllMines();
+          state.gameOver = true;
+          state.statusText = "养乐多逃跑了";
+          render();
+          showSettlement(false);
+          return;
+        }
+
+        floodReveal(r, c);
+        state.won = checkWin();
+        state.statusText = state.won ? "太棒了，你完成了寻找" : "继续寻找中";
+        render();
+        if (state.won) showSettlement(true);
+      }
+
+      function handleCellAction(r, c, forceFlag) {
+        if (forceFlag || state.flagMode) {
+          toggleFlag(r, c);
+          return;
+        }
+        openCell(r, c);
+      }
+
+      modeBtn.addEventListener("click", () => {
+        state.flagMode = !state.flagMode;
+        state.statusText = state.flagMode
+          ? "标记模式：点击可标记养乐多"
+          : "翻开模式：点击可探索格子";
+        render();
+      });
+
+      restartBtn.addEventListener("click", newGame);
+
+      secretInput.addEventListener("input", (event) => {
+        state.revealYakult = event.target.value.trim().toLowerCase() === "yakult";
+        renderBoard();
+      });
+
+      closeSettlementBtn.addEventListener("click", hideSettlement);
+
+      boardEl.addEventListener("click", (event) => {
+        const target = event.target.closest(".cell");
+        if (!target) return;
+        const r = Number(target.dataset.r);
+        const c = Number(target.dataset.c);
+        handleCellAction(r, c, false);
+      });
+
+      boardEl.addEventListener("contextmenu", (event) => {
+        const target = event.target.closest(".cell");
+        if (!target) return;
+        event.preventDefault();
+        const r = Number(target.dataset.r);
+        const c = Number(target.dataset.c);
+        handleCellAction(r, c, true);
+      });
+
+      boardEl.addEventListener("pointerdown", (event) => {
+        if (event.pointerType !== "touch") return;
+        const target = event.target.closest(".cell");
+        if (!target) return;
+        const r = Number(target.dataset.r);
+        const c = Number(target.dataset.c);
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          handleCellAction(r, c, true);
+        }, LONG_PRESS_MS);
+      });
+
+      boardEl.addEventListener("pointerup", () => {
+        if (!longPressTimer) return;
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      });
+
+      boardEl.addEventListener("pointercancel", () => {
+        if (!longPressTimer) return;
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      });
+
+      newGame();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Letter Badges &middot; Interactive Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --page: #07080d;
+      --panel: #e9e9ea;
+      --bar: #191923;
+      --text: #f6f2ea;
+      --muted: #d8c8a9;
+      --accent: #ff8d3b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .page {
+      width: min(1120px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 34px 0 48px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin-top: 6px;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      width: min(610px, 100%);
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .demo-card {
+      width: 100%;
+      margin: 26px auto 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+    }
+
+    .demo-bar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 18px;
+      background: var(--bar);
+      color: #fff8e7;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .bar-hint {
+      color: #d6c7aa;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: clamp(360px, calc(100vh - 230px), 720px);
+      background: #e6e6e7;
+      touch-action: none;
+      cursor: none;
+    }
+
+    @media (max-width: 680px) {
+      .page {
+        width: min(100vw - 24px, 680px);
+        padding-top: 24px;
+      }
+
+      .intro {
+        font-size: 14px;
+      }
+
+      .demo-bar {
+        padding: 0 12px;
+      }
+
+      .bar-hint {
+        display: none;
+      }
+
+      canvas {
+        height: clamp(360px, calc(100vh - 190px), 620px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">// Interactive Demo</div>
+    <h1>Try It Yourself</h1>
+    <p class="intro">
+      Drag the creature into any corner to trigger a hidden text rain. The letter badges are pushed away by it and spring back when it moves on.
+    </p>
+
+    <section class="demo-card" aria-label="Letter Badges interactive canvas">
+      <div class="demo-bar">
+        <span>Letter Badges</span>
+        <span class="bar-hint">Drag creature into a corner</span>
+      </div>
+      <canvas id="demo" width="720" height="502"></canvas>
+    </section>
+  </main>
+
+  <script type="module">
+    let prepareWithSegments;
+
+    try {
+      const mod = await import("https://esm.sh/@chenglou/pretext@0.0.6");
+      prepareWithSegments = mod.prepareWithSegments || mod.prepare;
+    } catch (error) {
+      console.error("Pretext load failed", error);
+    }
+
+    const canvas = document.getElementById("demo");
+    const ctx = canvas.getContext("2d");
+    let BASE_W = 720;
+    let BASE_H = 502;
+    let DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    const letters = ["L", "O", "V", "E", "\u2191", "\u2197", "\u2192", "\u2198", "\u2199", "\u2196"];
+    const palette = ["#9ee7bd", "#9fdff0", "#fee58f", "#e5c8f2", "#f7c8c7"];
+    const font = "700 14px Inter, system-ui, sans-serif";
+
+    const badges = [];
+    const rains = [];
+    // active 控制小球是否追随鼠标，inside 单独控制角落文字雨触发。
+    const pointer = { x: BASE_W * 0.22, y: BASE_H * 0.46, active: false, dragging: false, inside: false };
+    const creature = {
+      x: BASE_W * 0.22,
+      y: BASE_H * 0.46,
+      tx: BASE_W * 0.22,
+      ty: BASE_H * 0.46,
+      vx: 0,
+      vy: 0,
+      ix: 0,
+      iy: 0,
+      prevEx: 0,
+      prevEy: 0,
+      angle: 0
+    };
+    const PI2 = Math.PI * 2;
+    const REPEL_RADIUS = 120;
+    const REPEL_STRENGTH = 12;
+    const DRIFT = 0.06;
+    const DAMPING = 0.96;
+    const EDGE_MARGIN = 22;
+    let CORNER_SIZE = 112;
+    const RAIN_DURATION = 2200;
+    // 限制同时存在的文字雨数量，避免持续触发时 canvas 绘制过多导致卡顿。
+    const MAX_RAIN_DROPS = 180;
+    const PID_KP = 0.006;
+    const PID_KI = 0.000004;
+    const PID_KD = 0.03;
+    const PID_DAMPING = 0.8;
+    const cornerCooldowns = new Map();
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const nextW = Math.max(320, Math.round(rect.width));
+      const nextH = Math.max(320, Math.round(rect.height));
+      const scaleX = nextW / BASE_W;
+      const scaleY = nextH / BASE_H;
+
+      BASE_W = nextW;
+      BASE_H = nextH;
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(BASE_W * DPR);
+      canvas.height = Math.round(BASE_H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      CORNER_SIZE = Math.max(82, Math.min(132, Math.min(BASE_W, BASE_H) * 0.18));
+
+      pointer.x *= scaleX;
+      pointer.y *= scaleY;
+      creature.x *= scaleX;
+      creature.y *= scaleY;
+      creature.tx *= scaleX;
+      creature.ty *= scaleY;
+      creature.vx *= scaleX;
+      creature.vy *= scaleY;
+      creature.ix *= scaleX;
+      creature.iy *= scaleY;
+      creature.prevEx *= scaleX;
+      creature.prevEy *= scaleY;
+
+      for (const badge of badges) {
+        badge.x *= scaleX;
+        badge.y *= scaleY;
+        badge.homeX *= scaleX;
+        badge.homeY *= scaleY;
+      }
+
+      for (const drop of rains) {
+        drop.x *= scaleX;
+        drop.y *= scaleY;
+      }
+    }
+
+    function init() {
+      badges.length = 0;
+
+      const area = BASE_W * BASE_H;
+      const cellSize = Math.sqrt(area / 310);
+      const cols = Math.floor(BASE_W / cellSize);
+      const rows = Math.floor(BASE_H / cellSize);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const jx = (Math.random() - 0.5) * cellSize * 0.82;
+          const jy = (Math.random() - 0.5) * cellSize * 0.82;
+          badges.push({
+            ch: letters[Math.floor(Math.random() * letters.length)],
+            x: (c + 0.5) * cellSize + jx,
+            y: (r + 0.5) * cellSize + jy,
+            homeX: (c + 0.5) * cellSize + jx,
+            homeY: (r + 0.5) * cellSize + jy,
+            baseAngle: Math.random() * PI2,
+            driftAngle: Math.random() * PI2,
+            driftTurn: (Math.random() - 0.5) * 0.1,
+            rotation: Math.random() * PI2,
+            color: palette[Math.floor(Math.random() * palette.length)],
+            r: 14,
+            phase: Math.random() * PI2,
+            scale: 0.88 + Math.random() * 0.24,
+            vx: 0,
+            vy: 0
+          });
+        }
+      }
+    }
+
+    function rebuild() {
+      resizeCanvas();
+      init();
+    }
+
+    function distanceToCreature(badge) {
+      const dx = badge.x - creature.x;
+      const dy = badge.y - creature.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, BASE_W, BASE_H);
+      ctx.fillStyle = "#e6e6e7";
+      ctx.fillRect(0, 0, BASE_W, BASE_H);
+    }
+
+    function updateBadge(badge) {
+      const dx = badge.x - creature.x;
+      const dy = badge.y - creature.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < REPEL_RADIUS && dist > 0) {
+        const force = ((REPEL_RADIUS - dist) / REPEL_RADIUS) * REPEL_STRENGTH;
+        badge.vx += (dx / dist) * force;
+        badge.vy += (dy / dist) * force;
+      }
+
+      badge.vx += (BASE_W / 2 - badge.x) * 0.0002;
+      badge.vy += (BASE_H / 2 - badge.y) * 0.0002;
+      badge.vx += (badge.homeX - badge.x) * 0.0008;
+      badge.vy += (badge.homeY - badge.y) * 0.0008;
+
+      badge.driftAngle += badge.driftTurn * 0.03 + (Math.random() - 0.5) * 0.01;
+      badge.vx += Math.cos(badge.driftAngle) * DRIFT;
+      badge.vy += Math.sin(badge.driftAngle) * DRIFT;
+
+      badge.vx *= DAMPING;
+      badge.vy *= DAMPING;
+      badge.x += badge.vx;
+      badge.y += badge.vy;
+      badge.rotation += badge.vx * 0.015 + badge.vy * 0.006;
+
+      if (badge.x < EDGE_MARGIN) badge.vx += (EDGE_MARGIN - badge.x) * 0.3;
+      if (badge.x > BASE_W - EDGE_MARGIN) badge.vx += (BASE_W - EDGE_MARGIN - badge.x) * 0.3;
+      if (badge.y < EDGE_MARGIN) badge.vy += (EDGE_MARGIN - badge.y) * 0.3;
+      if (badge.y > BASE_H - EDGE_MARGIN) badge.vy += (BASE_H - EDGE_MARGIN - badge.y) * 0.3;
+    }
+
+    function updateCreatureTarget(t) {
+      if (pointer.active) {
+        creature.tx = pointer.x;
+        creature.ty = pointer.y;
+      } else {
+        creature.tx = BASE_W * 0.5 + Math.cos(t * 0.55) * 190;
+        creature.ty = BASE_H * 0.5 + Math.sin(t * 0.82) * 120;
+      }
+    }
+
+    function updateCreatureMotion() {
+      const ex = creature.tx - creature.x;
+      const ey = creature.ty - creature.y;
+
+      // 用 PID 让小球平滑追向鼠标，同时保留一点惯性。
+      creature.ix = Math.max(-240, Math.min(240, creature.ix + ex));
+      creature.iy = Math.max(-240, Math.min(240, creature.iy + ey));
+      creature.vx += ex * PID_KP + creature.ix * PID_KI + (ex - creature.prevEx) * PID_KD;
+      creature.vy += ey * PID_KP + creature.iy * PID_KI + (ey - creature.prevEy) * PID_KD;
+      creature.vx *= PID_DAMPING;
+      creature.vy *= PID_DAMPING;
+      creature.x += creature.vx;
+      creature.y += creature.vy;
+      creature.prevEx = ex;
+      creature.prevEy = ey;
+
+      creature.x = Math.max(40, Math.min(BASE_W - 40, creature.x));
+      creature.y = Math.max(45, Math.min(BASE_H - 45, creature.y));
+    }
+
+    function update(now) {
+      const t = now * 0.001;
+      updateCreatureTarget(t);
+      updateCreatureMotion();
+      creature.angle += 0.035;
+
+      for (const badge of badges) updateBadge(badge);
+      // 触发区域不绘制出来，只保留四角作为隐藏交互入口。
+      const corner = getCorner(pointer.x, pointer.y);
+      if (pointer.inside && corner) triggerCornerEffect(corner, now);
+      updateTextRain(now);
+    }
+
+    function creatureRadius() {
+      return 32;
+    }
+
+    function drawBadges() {
+      ctx.font = font;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (const badge of badges) {
+        const dist = distanceToCreature(badge);
+        const near = dist < REPEL_RADIUS * 1.4;
+        const alpha = near ? 1 : 0.45;
+
+        ctx.save();
+        ctx.translate(badge.x, badge.y);
+        ctx.rotate(badge.rotation);
+        ctx.scale(badge.scale, badge.scale);
+
+        if (near) {
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = badge.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, badge.r, 0, PI2);
+          ctx.fill();
+          ctx.fillStyle = "#333";
+          ctx.fillText(badge.ch, 0, 1);
+        } else {
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = "#c0c0c0";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(0, 0, badge.r, 0, PI2);
+          ctx.stroke();
+          ctx.fillStyle = "#888";
+          ctx.fillText(badge.ch, 0, 1);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function getCorner(x, y) {
+      const left = x <= CORNER_SIZE;
+      const right = x >= BASE_W - CORNER_SIZE;
+      const top = y <= CORNER_SIZE;
+      const bottom = y >= BASE_H - CORNER_SIZE;
+
+      if (left && top) return "top-left";
+      if (right && top) return "top-right";
+      if (left && bottom) return "bottom-left";
+      if (right && bottom) return "bottom-right";
+      return "";
+    }
+
+    function triggerCornerEffect(corner, now = performance.now()) {
+      const last = cornerCooldowns.get(corner) || 0;
+      if (now - last < 320) return;
+      cornerCooldowns.set(corner, now);
+
+      const isTop = corner.startsWith("top");
+      const text = isTop ? "\u6211\u60f3\u4f60\u4e86" : "LOVE";
+      const count = isTop ? 28 : 24;
+
+      // 持续停在角落时会重复生成文字雨，超过上限就移除最早的雨滴。
+      const overflow = rains.length + count - MAX_RAIN_DROPS;
+      if (overflow > 0) rains.splice(0, overflow);
+
+      // 用分栏随机代替纯随机，让同样数量的文字更均匀铺满画布。
+      const laneWidth = (BASE_W - 48) / count;
+
+      for (let i = 0; i < count; i++) {
+        rains.push({
+          text,
+          x: 24 + laneWidth * (i + Math.random()),
+          y: isTop ? -Math.random() * 170 : BASE_H + Math.random() * 70,
+          vx: (Math.random() - 0.5) * 0.42,
+          vy: (isTop ? 1 : -1) * (3.2 + Math.random() * 3.4),
+          born: now + i * 14,
+          life: RAIN_DURATION + Math.random() * 950,
+          size: isTop ? 18 + Math.random() * 12 : 20 + Math.random() * 14,
+          color: isTop ? (Math.random() > 0.5 ? "#ff5f91" : "#ff8d3b") : (Math.random() > 0.5 ? "#ef4d79" : "#ffcc4d"),
+          rotation: (Math.random() - 0.5) * 0.32,
+          spin: (Math.random() - 0.5) * 0.012
+        });
+      }
+    }
+
+    function updateTextRain(now) {
+      for (let i = rains.length - 1; i >= 0; i--) {
+        const drop = rains[i];
+        if (now < drop.born) continue;
+
+        drop.x += drop.vx;
+        drop.y += drop.vy;
+        drop.rotation += drop.spin;
+
+        if (now - drop.born > drop.life || drop.y < -70 || drop.y > BASE_H + 90) {
+          rains.splice(i, 1);
+        }
+      }
+    }
+
+    function drawTextRain(now) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (const drop of rains) {
+        if (now < drop.born) continue;
+
+        const age = now - drop.born;
+        const fadeIn = Math.min(1, age / 260);
+        const fadeOut = Math.min(1, (drop.life - age) / 520);
+        ctx.globalAlpha = Math.max(0, Math.min(fadeIn, fadeOut));
+        ctx.font = `800 ${drop.size}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = drop.color;
+        ctx.shadowColor = "rgba(255, 95, 145, 0.36)";
+        ctx.shadowBlur = 12;
+        ctx.save();
+        ctx.translate(drop.x, drop.y);
+        ctx.rotate(drop.rotation);
+        ctx.fillText(drop.text, 0, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function drawCreature() {
+      ctx.save();
+      ctx.translate(creature.x, creature.y);
+
+      for (let i = 0; i < 14; i++) {
+        const a = creature.angle + (i / 14) * Math.PI * 2;
+        const r = 27;
+        ctx.fillStyle = "#161719";
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 6.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#17181b";
+      ctx.beginPath();
+      ctx.arc(0, 0, 23, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(-8, -2, 8, 0, Math.PI * 2);
+      ctx.arc(8, -2, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      const lookX = Math.max(-3, Math.min(3, (creature.tx - creature.x) * 0.04));
+      const lookY = Math.max(-3, Math.min(3, (creature.ty - creature.y) * 0.04));
+      ctx.fillStyle = "#161719";
+      ctx.beginPath();
+      ctx.arc(-8 + lookX, -2 + lookY, 3, 0, Math.PI * 2);
+      ctx.arc(8 + lookX, -2 + lookY, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 8, 7, 0.1, Math.PI - 0.1);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function loop(now) {
+      update(now);
+      drawBackground();
+      drawBadges();
+      drawTextRain(now);
+      drawCreature();
+      requestAnimationFrame(loop);
+    }
+
+    function setPointer(event, active) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * BASE_W;
+      pointer.y = ((event.clientY - rect.top) / rect.height) * BASE_H;
+      pointer.active = active;
+      pointer.inside = active;
+    }
+
+    function startDrag(event) {
+      setPointer(event, true);
+      pointer.dragging = true;
+      canvas.setPointerCapture(event.pointerId);
+    }
+
+    function drag(event) {
+      setPointer(event, true);
+
+      if (!pointer.dragging) return;
+      const corner = getCorner(pointer.x, pointer.y);
+      if (corner) triggerCornerEffect(corner);
+    }
+
+    function endDrag(event) {
+      if (pointer.dragging) {
+        const corner = getCorner(pointer.x, pointer.y);
+        if (corner) triggerCornerEffect(corner);
+      }
+
+      pointer.dragging = false;
+      pointer.active = false;
+
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    canvas.addEventListener("pointerdown", startDrag);
+    canvas.addEventListener("pointermove", drag);
+    canvas.addEventListener("pointerenter", (event) => setPointer(event, true));
+    canvas.addEventListener("pointerup", endDrag);
+    canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener("pointerleave", () => {
+      if (pointer.dragging) return;
+      pointer.active = false;
+      pointer.inside = false;
+    });
+
+    let resizeTimer = 0;
+    window.addEventListener("resize", () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(rebuild, 120);
+    });
+
+    rebuild();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

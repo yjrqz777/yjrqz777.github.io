@@ -1,4 +1,4 @@
-export default class ImageFactory {
+<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script>export default class ImageFactory {
     static getImageFromFile(file) {
         var reader = new FileReader,
             image = new Image;

@@ -1,4 +1,4 @@
-var DIR_ASSETS = 'assets',
+<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script>var DIR_ASSETS = 'assets',
     DIR_ASSETS_SCRIPTS = DIR_ASSETS + '/scripts',
     DIR_ASSETS_STYLES = DIR_ASSETS + '/styles',
 
