@@ -1,4 +1,4 @@
-<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script>import AsciiFactory from './factories/AsciiFactory';
+import AsciiFactory from './factories/AsciiFactory';
 import CharacterSetFactory from './factories/CharacterSetFactory';
 import ImageFactory from './factories/ImageFactory';
 import CanvasService from './services/CanvasService';

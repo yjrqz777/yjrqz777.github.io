@@ -1,1 +1,7 @@
-<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script>{"name":"ascii-generator","private":true,"devDependencies":{"normalize-css":"normalize.css#~3.0.3"}}
+{
+  "name": "ascii-generator",
+  "private": true,
+  "devDependencies": {
+    "normalize-css": "normalize.css#~3.0.3"
+  }
+}
