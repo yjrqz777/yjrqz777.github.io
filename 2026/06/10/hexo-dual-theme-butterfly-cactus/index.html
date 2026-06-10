@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存 | YJRQZ777</title><meta name="author" content="yjrqz777"><meta name="copyright" content="yjrqz777"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="记录一次 Hexo 同时使用 Butterfly 和 cactus 两个主题的实现过程，包括配置拆分、独立输出、最终组装和踩坑点。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存">
+<meta property="og:url" content="http://example.com/2026/06/10/hexo-dual-theme-butterfly-cactus/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="记录一次 Hexo 同时使用 Butterfly 和 cactus 两个主题的实现过程，包括配置拆分、独立输出、最终组装和踩坑点。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/huixiang.jpg">
+<meta property="article:published_time" content="2026-06-10T13:50:00.000Z">
+<meta property="article:modified_time" content="2026-06-10T14:35:52.563Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="Hexo">
+<meta property="article:tag" content="Butterfly">
+<meta property="article:tag" content="cactus">
+<meta property="article:tag" content="博客搭建">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/huixiang.jpg"><link rel="shortcut icon" href="/img/star.ico"><link rel="canonical" href="http://example.com/2026/06/10/hexo-dual-theme-butterfly-cactus/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-06-10 22:35:52'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="/css/font.css"><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">35</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/huixiang.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="YJRQZ777"><img class="site-icon" src="/img/tree.ico"/><span class="site-name">YJRQZ777</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-06-10T13:50:00.000Z" title="发表于 2026-06-10 21:50:00">2026-06-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-06-10T14:35:52.563Z" title="更新于 2026-06-10 22:35:52">2026-06-10</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>原来的博客一直使用 Butterfly 主题，后面想额外保留一个 cactus 主题页面，用来展示更简洁的博客风格。</p>
+<p>目标是：</p>
+<ul>
+<li>主站继续使用 Butterfly；</li>
+<li>cactus 作为子站存在；</li>
+<li>两个主题互不覆盖静态资源；</li>
+<li>最终仍然只发布一个 GitHub Pages 站点。</li>
+</ul>
+<p>最终访问结构如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/               Butterfly 主站</span><br><span class="line">/cactus-theme/  cactus 子站</span><br></pre></td></tr></table></figure>
+
+<h2 id="最终方案"><a href="#最终方案" class="headerlink" title="最终方案"></a>最终方案</h2><p>不要让两个主题直接混在同一个输出目录里生成。</p>
+<p>最终采用的方案是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cactus-theme/       cactus 独立构建输出</span><br><span class="line">public/             Butterfly 主站输出，也是最终发布目录</span><br><span class="line">public/cactus-theme cactus 被复制进去后的最终位置</span><br></pre></td></tr></table></figure>
+
+<p>也就是说：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">先生成 cactus -&gt; cactus-theme/</span><br><span class="line">再生成 Butterfly -&gt; public/</span><br><span class="line">最后复制 cactus-theme/* -&gt; public/cactus-theme/</span><br></pre></td></tr></table></figure>
+
+<p>这样两个主题在构建阶段是分开的，不会互相覆盖 <code>main.js</code>、<code>index.css</code> 这类同名文件。</p>
+<h2 id="配置文件"><a href="#配置文件" class="headerlink" title="配置文件"></a>配置文件</h2><p>根目录 <code>_config.yml</code> 仍然保持 Butterfly 作为默认主题：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">theme:</span> <span class="string">butterfly</span></span><br></pre></td></tr></table></figure>
+
+<p>Butterfly 的主题配置继续放在：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_config.butterfly.yml</span><br></pre></td></tr></table></figure>
+
+<p>cactus 使用单独配置：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">theme:</span> <span class="string">cactus</span></span><br><span class="line"><span class="attr">public_dir:</span> <span class="string">cactus-theme</span></span><br><span class="line"><span class="attr">root:</span> <span class="string">/cactus-theme/</span></span><br></pre></td></tr></table></figure>
+
+<p>这里最重要的是 <code>public_dir</code> 和 <code>root</code> 要对应。</p>
+<p><code>public_dir: cactus-theme</code> 表示 cactus 先输出到本地的 <code>cactus-theme/</code> 文件夹。</p>
+<p><code>root: /cactus-theme/</code> 表示部署后 cactus 的访问路径是 <code>/cactus-theme/</code>。</p>
+<p>如果这两个不一致，页面可能能打开，但 CSS、JS、图片路径会错。</p>
+<h2 id="构建脚本"><a href="#构建脚本" class="headerlink" title="构建脚本"></a>构建脚本</h2><p>使用 PowerShell 脚本统一构建两个主题：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hexo clean</span><br><span class="line">hexo <span class="literal">--config</span> <span class="string">&quot;_config.yml,_config.cactus.yml&quot;</span> generate</span><br><span class="line"></span><br><span class="line">hexo clean</span><br><span class="line">hexo <span class="literal">--config</span> <span class="string">&quot;_config.yml,_config.butterfly.yml&quot;</span> generate</span><br><span class="line"></span><br><span class="line"><span class="built_in">Copy-DirectoryContents</span> <span class="variable">$cactusOut</span> (<span class="built_in">Join-Path</span> <span class="variable">$public</span> <span class="string">&quot;cactus-theme&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>完整脚本放在：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tools/build-dual.ps1</span><br></pre></td></tr></table></figure>
+
+<p>构建流程是：</p>
+<ol>
+<li>清理旧的 <code>public/</code> 和 <code>cactus-theme/</code>；</li>
+<li>使用 <code>_config.yml,_config.cactus.yml</code> 生成 cactus；</li>
+<li>再普通生成 Butterfly 到 <code>public/</code>；</li>
+<li>把 cactus 的输出复制到 <code>public/cactus-theme/</code>；</li>
+<li>最终只部署 <code>public/</code>。</li>
+</ol>
+<h2 id="package-json-命令"><a href="#package-json-命令" class="headerlink" title="package.json 命令"></a>package.json 命令</h2><p><code>package.json</code> 中保留快捷命令：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;build:dual&quot;</span><span class="punctuation">:</span> <span class="string">&quot;powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-dual.ps1&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;deploy:dual&quot;</span><span class="punctuation">:</span> <span class="string">&quot;npm run build:dual &amp;&amp; hexo deploy&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>以后本地构建：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm run build:dual</span><br></pre></td></tr></table></figure>
+
+<p>构建并发布：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm run deploy:dual</span><br></pre></td></tr></table></figure>
+
+<h2 id="踩坑记录"><a href="#踩坑记录" class="headerlink" title="踩坑记录"></a>踩坑记录</h2><h3 id="1-PowerShell-里-–config-要加引号"><a href="#1-PowerShell-里-–config-要加引号" class="headerlink" title="1. PowerShell 里 –config 要加引号"></a>1. PowerShell 里 –config 要加引号</h3><p>错误写法：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo generate <span class="literal">--config</span> _config.yml,_config.cactus.yml</span><br></pre></td></tr></table></figure>
+
+<p>在 PowerShell 里，这个参数可能会被拆坏，导致 Hexo 报：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">WARN Config file _config.yml _config.cactus.yml not found, using default.</span><br></pre></td></tr></table></figure>
+
+<p>正确写法：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo <span class="literal">--config</span> <span class="string">&quot;_config.yml,_config.cactus.yml&quot;</span> generate</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-不要单独使用-config-butterfly-yml-生成"><a href="#2-不要单独使用-config-butterfly-yml-生成" class="headerlink" title="2. 不要单独使用 _config.butterfly.yml 生成"></a>2. 不要单独使用 _config.butterfly.yml 生成</h3><p>错误写法：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo <span class="literal">--config</span> <span class="string">&quot;_config.butterfly.yml&quot;</span> generate</span><br></pre></td></tr></table></figure>
+
+<p>这样会只读取 Butterfly 配置，而不会读取根目录 <code>_config.yml</code>。</p>
+<p>结果就是站点标题、作者、部署配置等主配置都丢了，标题可能会变成默认的 <code>Hexo</code>。</p>
+<p>正确写法：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo <span class="literal">--config</span> <span class="string">&quot;_config.yml,_config.butterfly.yml&quot;</span> generate</span><br></pre></td></tr></table></figure>
+
+<p>或者在 Butterfly 作为默认主题时直接：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo generate</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-两个主题不能随便共用-public"><a href="#3-两个主题不能随便共用-public" class="headerlink" title="3. 两个主题不能随便共用 public"></a>3. 两个主题不能随便共用 public</h3><p>一开始尝试让两个主题都输出到 <code>public/</code>，后来发现容易出问题。</p>
+<p>例如 Butterfly 页面需要自己的：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/js/main.js</span><br><span class="line">/css/index.css</span><br></pre></td></tr></table></figure>
+
+<p>cactus 也有自己的：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/js/main.js</span><br><span class="line">/css/style.css</span><br></pre></td></tr></table></figure>
+
+<p>如果构建顺序或 <code>public_dir</code> 出错，可能出现 Butterfly 页面加载到 cactus 的 JS，导致顶部栏存在但透明不可见。</p>
+<p>Butterfly 的导航默认是：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-id">#nav</span> &#123;</span><br><span class="line">  <span class="attribute">opacity</span>: <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要 Butterfly 的 <code>main.js</code> 正常执行后加上 <code>show</code> 类：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">nav</span> <span class="attr">id</span>=<span class="string">&quot;nav&quot;</span> <span class="attr">class</span>=<span class="string">&quot;show&quot;</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果加载错 JS，导航链接还在，但看起来像消失了一样。</p>
+<h3 id="4-cactus-的-root-必须和复制目录一致"><a href="#4-cactus-的-root-必须和复制目录一致" class="headerlink" title="4. cactus 的 root 必须和复制目录一致"></a>4. cactus 的 root 必须和复制目录一致</h3><p>现在 cactus 的配置是：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">root:</span> <span class="string">/cactus-theme/</span></span><br></pre></td></tr></table></figure>
+
+<p>所以最终必须复制到：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public/cactus-theme/</span><br></pre></td></tr></table></figure>
+
+<p>如果复制到：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public/cactus/</span><br></pre></td></tr></table></figure>
+
+<p>那就要把 cactus 配置改成：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">root:</span> <span class="string">/cactus/</span></span><br></pre></td></tr></table></figure>
+
+<p>这两个名字必须一致。</p>
+<h2 id="最终目录结构"><a href="#最终目录结构" class="headerlink" title="最终目录结构"></a>最终目录结构</h2><p>构建完成后应该是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">public/</span><br><span class="line">  index.html</span><br><span class="line">  css/</span><br><span class="line">  js/</span><br><span class="line">  picture/</span><br><span class="line">  cactus-theme/</span><br><span class="line">    index.html</span><br><span class="line">    css/</span><br><span class="line">    js/</span><br></pre></td></tr></table></figure>
+
+<p>发布时仍然只需要发布 <code>public/</code>。</p>
+<p>GitHub Pages 看到的是一个普通静态站，但里面同时包含两个主题。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Hexo 双主题的关键不是让一个主题“切换成另一个主题”，而是把它们当成两个静态站点构建。</p>
+<p>Butterfly 负责主站：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/</span><br></pre></td></tr></table></figure>
+
+<p>cactus 负责子站：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/cactus-theme/</span><br></pre></td></tr></table></figure>
+
+<p>两个主题独立生成，最后再组装到同一个 <code>public/</code> 目录里发布。这样结构清楚，也能避免静态资源互相覆盖。</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Hexo/">Hexo</a><a class="post-meta__tags" href="/tags/Butterfly/">Butterfly</a><a class="post-meta__tags" href="/tags/cactus/">cactus</a><a class="post-meta__tags" href="/tags/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/">博客搭建</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2026/06/10/stm32_ram_flash_compare_hexo_blog/" title="STM32 外部存储器：RAM 与 Flash 对比详解"><img class="cover" src="/img/blog_img/nor_nand.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">STM32 外部存储器：RAM 与 Flash 对比详解</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">yjrqz777</div><div class="author-info__description">杂学家</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">35</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/yjrqz777"><i class="fab fa-github"></i><span>Find me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/yjrqz777" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yjrqz77@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">什么也没......</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%83%8C%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88%E6%96%B9%E6%A1%88"><span class="toc-number">2.</span> <span class="toc-text">最终方案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-number">3.</span> <span class="toc-text">配置文件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%84%E5%BB%BA%E8%84%9A%E6%9C%AC"><span class="toc-number">4.</span> <span class="toc-text">构建脚本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#package-json-%E5%91%BD%E4%BB%A4"><span class="toc-number">5.</span> <span class="toc-text">package.json 命令</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95"><span class="toc-number">6.</span> <span class="toc-text">踩坑记录</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-PowerShell-%E9%87%8C-%E2%80%93config-%E8%A6%81%E5%8A%A0%E5%BC%95%E5%8F%B7"><span class="toc-number">6.1.</span> <span class="toc-text">1. PowerShell 里 –config 要加引号</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%B8%8D%E8%A6%81%E5%8D%95%E7%8B%AC%E4%BD%BF%E7%94%A8-config-butterfly-yml-%E7%94%9F%E6%88%90"><span class="toc-number">6.2.</span> <span class="toc-text">2. 不要单独使用 _config.butterfly.yml 生成</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E4%B8%A4%E4%B8%AA%E4%B8%BB%E9%A2%98%E4%B8%8D%E8%83%BD%E9%9A%8F%E4%BE%BF%E5%85%B1%E7%94%A8-public"><span class="toc-number">6.3.</span> <span class="toc-text">3. 两个主题不能随便共用 public</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-cactus-%E7%9A%84-root-%E5%BF%85%E9%A1%BB%E5%92%8C%E5%A4%8D%E5%88%B6%E7%9B%AE%E5%BD%95%E4%B8%80%E8%87%B4"><span class="toc-number">6.4.</span> <span class="toc-text">4. cactus 的 root 必须和复制目录一致</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84"><span class="toc-number">7.</span> <span class="toc-text">最终目录结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/06/10/hexo-dual-theme-butterfly-cactus/" title="Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存"><img src="/img/huixiang.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存"/></a><div class="content"><a class="title" href="/2026/06/10/hexo-dual-theme-butterfly-cactus/" title="Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存">Hexo 双主题构建记录：Butterfly 主站与 cactus 子站共存</a><time datetime="2026-06-10T13:50:00.000Z" title="发表于 2026-06-10 21:50:00">2026-06-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/06/10/stm32_ram_flash_compare_hexo_blog/" title="STM32 外部存储器：RAM 与 Flash 对比详解"><img src="/img/blog_img/nor_nand.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="STM32 外部存储器：RAM 与 Flash 对比详解"/></a><div class="content"><a class="title" href="/2026/06/10/stm32_ram_flash_compare_hexo_blog/" title="STM32 外部存储器：RAM 与 Flash 对比详解">STM32 外部存储器：RAM 与 Flash 对比详解</a><time datetime="2026-06-10T11:00:00.000Z" title="发表于 2026-06-10 19:00:00">2026-06-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/06/06/cherryusb_rtt_qa_zh/" title="STM32H743 移植 CherryUSB 与 SEGGER RTT 的问题排查记录">STM32H743 移植 CherryUSB 与 SEGGER RTT 的问题排查记录</a><time datetime="2026-06-05T16:00:00.000Z" title="发表于 2026-06-06 00:00:00">2026-06-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/26/ax3600-unlock-ssh/" title="小米路由器 AX3600 解锁 SSH 开启发烧之旅"><img src="/img/ax3600-head1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="小米路由器 AX3600 解锁 SSH 开启发烧之旅"/></a><div class="content"><a class="title" href="/2026/05/26/ax3600-unlock-ssh/" title="小米路由器 AX3600 解锁 SSH 开启发烧之旅">小米路由器 AX3600 解锁 SSH 开启发烧之旅</a><time datetime="2026-05-26T12:00:00.000Z" title="发表于 2026-05-26 20:00:00">2026-05-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/24/stm32-hal-vscode-header-issue/" title="解决 STM32 HAL 库使用 VSCode 打开识别不到头文件及 uint8_t 等问题"><img src="/img/vscode.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="解决 STM32 HAL 库使用 VSCode 打开识别不到头文件及 uint8_t 等问题"/></a><div class="content"><a class="title" href="/2026/05/24/stm32-hal-vscode-header-issue/" title="解决 STM32 HAL 库使用 VSCode 打开识别不到头文件及 uint8_t 等问题">解决 STM32 HAL 库使用 VSCode 打开识别不到头文件及 uint8_t 等问题</a><time datetime="2026-05-24T05:41:31.000Z" title="发表于 2026-05-24 13:41:31">2026-05-24</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2026 By yjrqz777</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const $mermaidWrap = document.querySelectorAll('#article-container .mermaid-wrap')
+  if ($mermaidWrap.length) {
+    window.runMermaid = () => {
+      window.loadMermaid = true
+      const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+      Array.from($mermaidWrap).forEach((item, index) => {
+        const mermaidSrc = item.firstElementChild
+        const mermaidThemeConfig = '%%{init:{ \'theme\':\'' + theme + '\'}}%%\n'
+        const mermaidID = 'mermaid-' + index
+        const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+        mermaid.mermaidAPI.render(mermaidID, mermaidDefinition, (svgCode) => {
+          mermaidSrc.insertAdjacentHTML('afterend', svgCode)
+        })
+      })
+    }
+
+    const loadMermaid = () => {
+      window.loadMermaid ? runMermaid() : getScript('https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js').then(runMermaid)
+    }
+
+    window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+  }
+})()</script></div><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-heart.min.js" async="async" mobile="true"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body></html>
