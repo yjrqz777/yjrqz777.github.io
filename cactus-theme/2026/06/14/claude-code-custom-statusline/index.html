@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Claude Code 定制多行状态栏，实时显示模型、effort、上下文进度条和 token 用量。含完整脚本与设置步骤。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="给 Claude Code 写一个实时多行状态栏（Python statusLine）">
+<meta property="og:url" content="http://example.com/2026/06/14/claude-code-custom-statusline/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="Claude Code 定制多行状态栏，实时显示模型、effort、上下文进度条和 token 用量。含完整脚本与设置步骤。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-06-14T07:30:00.000Z">
+<meta property="article:modified_time" content="2026-06-14T07:17:35.071Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="Claude Code">
+<meta property="article:tag" content="命令行">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="AI 编程">
+<meta property="article:tag" content="效率工具">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>给 Claude Code 写一个实时多行状态栏（Python statusLine）</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/06/10/hexo-dual-theme-butterfly-cactus/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/06/14/claude-code-custom-statusline/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/06/14/claude-code-custom-statusline/&text=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/06/14/claude-code-custom-statusline/&is_video=false&description=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=给 Claude Code 写一个实时多行状态栏（Python statusLine）&body=Check out this article: http://example.com/2026/06/14/claude-code-custom-statusline/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/06/14/claude-code-custom-statusline/&name=给 Claude Code 写一个实时多行状态栏（Python statusLine）&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/06/14/claude-code-custom-statusline/&t=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88"><span class="toc-number">1.</span> <span class="toc-text">这是什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="toc-number">2.</span> <span class="toc-text">数据从哪来</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-stdin-%E7%9A%84-JSON%EF%BC%88Claude-Code-%E6%AF%8F%E6%AC%A1%E5%88%B7%E6%96%B0%E9%83%BD%E7%BB%99%EF%BC%89"><span class="toc-number">2.1.</span> <span class="toc-text">1. stdin 的 JSON（Claude Code 每次刷新都给）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-transcript-JSONL%EF%BC%88token-%E6%95%B0%E6%8D%AE%E7%9A%84%E7%9C%9F%E6%AD%A3%E6%9D%A5%E6%BA%90%EF%BC%89"><span class="toc-number">2.2.</span> <span class="toc-text">2. transcript JSONL（token 数据的真正来源）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Effort-%E7%AD%89%E7%BA%A7%EF%BC%88%E5%AE%9E%E6%97%B6%E8%AF%BB-settings-json%EF%BC%89"><span class="toc-number">2.3.</span> <span class="toc-text">3. Effort 等级（实时读 settings.json）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Thinking-%E5%BC%80%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">4. Thinking 开关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8-Python-%E8%80%8C%E4%B8%8D%E6%98%AF-bash"><span class="toc-number">3.</span> <span class="toc-text">为什么用 Python 而不是 bash</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%8C%E6%95%B4%E8%84%9A%E6%9C%AC"><span class="toc-number">4.</span> <span class="toc-text">完整脚本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%8E%E4%B9%88%E8%AE%BE%E7%BD%AE"><span class="toc-number">5.</span> <span class="toc-text">怎么设置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%94%BE%E8%84%9A%E6%9C%AC"><span class="toc-number">5.1.</span> <span class="toc-text">第一步：放脚本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%9C%A8-settings-json-%E9%87%8C%E5%90%AF%E7%94%A8"><span class="toc-number">5.2.</span> <span class="toc-text">第二步：在 settings.json 里启用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89%EF%BC%9A%E8%B0%83%E6%95%B4"><span class="toc-number">5.3.</span> <span class="toc-text">第三步（可选）：调整</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%87%AA%E5%B7%B1%E6%B5%8B%E8%AF%95%E4%B8%80%E4%B8%8B"><span class="toc-number">6.</span> <span class="toc-text">自己测试一下</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B8%A9%E8%BF%87%E7%9A%84%E5%9D%91"><span class="toc-number">7.</span> <span class="toc-text">踩过的坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">小结</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        给 Claude Code 写一个实时多行状态栏（Python statusLine）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-06-14T07:30:00.000Z" class="dt-published" itemprop="datePublished">2026-06-14</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B7%A5%E5%85%B7/">工具</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/AI-%E7%BC%96%E7%A8%8B/" rel="tag">AI 编程</a>, <a class="p-category" href="/cactus-theme/tags/Claude-Code/" rel="tag">Claude Code</a>, <a class="p-category" href="/cactus-theme/tags/Python/" rel="tag">Python</a>, <a class="p-category" href="/cactus-theme/tags/%E5%91%BD%E4%BB%A4%E8%A1%8C/" rel="tag">命令行</a>, <a class="p-category" href="/cactus-theme/tags/%E6%95%88%E7%8E%87%E5%B7%A5%E5%85%B7/" rel="tag">效率工具</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <!-- <style>
+#page-header.post-bg {
+  height: 400px;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-color: #000;
+}
+</style> -->
+
+<h2 id="这是什么"><a href="#这是什么" class="headerlink" title="这是什么"></a>这是什么</h2><p>Claude Code 终端底部有一行 status line，默认信息比较少。它支持自定义：你给它一个命令，Claude Code 每次刷新时把一段 JSON 从 stdin 喂给这个命令，命令打印什么，状态栏就显示什么。</p>
+<p>我把它做成了下面这样的四行状态栏（实时刷新）：<br><a href="/img/claudecodeStatusline.png">claudecodeStatusline</a></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GLM-5.1 | 15:04 | Effort:high | Thinking | v2.1.126</span><br><span class="line">C:\Users\Alan</span><br><span class="line">[CTX] [#######...........] 38% 62% | Size:200K | In:6.3M Out:41K</span><br><span class="line">Usage: In:376 Out:211 Crt:1.4K Rd:74.6K</span><br></pre></td></tr></table></figure>
+
+<p>逐行说明：</p>
+<ol>
+<li><strong>模型名 · 时间 · Effort 等级 · Thinking 开关 · 版本号</strong></li>
+<li><strong>当前工作目录</strong>（完整路径）</li>
+<li><strong>上下文进度条</strong>：已用百分比 &#x2F; 剩余百分比 ｜ 上下文窗口大小 ｜ 整个会话累计的输入&#x2F;输出 token</li>
+<li><strong>Usage</strong>：最近一次回复的 token 明细（输入 &#x2F; 输出 &#x2F; 缓存写入 &#x2F; 缓存读取）</li>
+</ol>
+<p>进度条颜色随使用率变化：绿（&lt;50%）→ 黄（50–79%）→ 红（≥80%）。</p>
+<h2 id="数据从哪来"><a href="#数据从哪来" class="headerlink" title="数据从哪来"></a>数据从哪来</h2><p>这是整件事最关键的部分，因为不同字段来源不一样。</p>
+<h3 id="1-stdin-的-JSON（Claude-Code-每次刷新都给）"><a href="#1-stdin-的-JSON（Claude-Code-每次刷新都给）" class="headerlink" title="1. stdin 的 JSON（Claude Code 每次刷新都给）"></a>1. stdin 的 JSON（Claude Code 每次刷新都给）</h3><p>状态栏脚本启动时，Claude Code 会从标准输入塞一段 JSON 进来，常用字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.model.display_name</code></td>
+<td>模型显示名</td>
+</tr>
+<tr>
+<td><code>.version</code></td>
+<td>Claude Code 版本号</td>
+</tr>
+<tr>
+<td><code>.workspace.current_dir</code></td>
+<td>当前目录</td>
+</tr>
+<tr>
+<td><code>.cwd</code></td>
+<td>当前目录（备用）</td>
+</tr>
+<tr>
+<td><code>.transcript_path</code></td>
+<td>当前会话的对话记录文件路径（JSONL）</td>
+</tr>
+</tbody></table>
+<p>模型名、版本、目录直接从这里取就行。</p>
+<h3 id="2-transcript-JSONL（token-数据的真正来源）"><a href="#2-transcript-JSONL（token-数据的真正来源）" class="headerlink" title="2. transcript JSONL（token 数据的真正来源）"></a>2. transcript JSONL（token 数据的真正来源）</h3><p>token 用量<strong>不在</strong> stdin 的 JSON 里。但 <code>.transcript_path</code> 指向的那个 <code>.jsonl</code> 文件，每一行是一条消息，助手消息里带一个 <code>usage</code> 块：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;input_tokens&quot;</span><span class="punctuation">:</span> <span class="number">240</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;cache_creation_input_tokens&quot;</span><span class="punctuation">:</span> <span class="number">5774</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;cache_read_input_tokens&quot;</span><span class="punctuation">:</span> <span class="number">55205</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;output_tokens&quot;</span><span class="punctuation">:</span> <span class="number">293</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>于是脚本逐行读这个文件：</p>
+<ul>
+<li><strong>上下文已用</strong> &#x3D; 最后一条消息的 <code>input_tokens + cache_creation + cache_read</code>，再除以上下文窗口得到百分比；</li>
+<li><strong>累计 In&#x2F;Out</strong> &#x3D; 把每条消息的 usage 全部累加。</li>
+</ul>
+<h3 id="3-Effort-等级（实时读-settings-json）"><a href="#3-Effort-等级（实时读-settings-json）" class="headerlink" title="3. Effort 等级（实时读 settings.json）"></a>3. Effort 等级（实时读 settings.json）</h3><p>这是个坑。<code>/effort</code> 命令切换的等级，Claude Code <strong>并没有</strong>通过 stdin 传给状态栏。一开始我用一个静态文件存它，结果发现切换 effort 后状态栏不跟着变。</p>
+<p>后来定位到：<code>/effort</code> 实际把等级写进了 <code>~/.claude/settings.json</code> 的 <code>effortLevel</code> 字段。所以脚本每次刷新直接读这个文件，就能做到真·实时——<code>/effort</code> 一切换，状态栏立刻更新。</p>
+<h3 id="4-Thinking-开关"><a href="#4-Thinking-开关" class="headerlink" title="4. Thinking 开关"></a>4. Thinking 开关</h3><p>这个 Claude Code 没有持久化到任何可读的地方，所以脚本用一个可选文件 <code>~/.claude/statusline-thinking</code> 来控制显示（内容写 <code>off</code> 就隐藏），默认显示。</p>
+<h2 id="为什么用-Python-而不是-bash"><a href="#为什么用-Python-而不是-bash" class="headerlink" title="为什么用 Python 而不是 bash"></a>为什么用 Python 而不是 bash</h2><p>状态栏的常规做法是 bash + <code>jq</code> 解析 JSON。但我这台机器没装 <code>jq</code>，而要解析 transcript 的嵌套 JSON、逐行累加 token，纯 sed&#x2F;grep 很容易出错（我第一版就踩了，两个进度条会取到同一个值）。系统里有 Python 3.12，直接用 Python 解析 JSON 又稳又好维护，所以换成了 Python。</p>
+<h2 id="完整脚本"><a href="#完整脚本" class="headerlink" title="完整脚本"></a>完整脚本</h2><p>保存为 <code>~/.claude/statusline-command.py</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">Claude Code status line (multi-line).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Layout (4 lines):</span></span><br><span class="line"><span class="string">  1) MODEL | HH:MM | Effort:&lt;lvl&gt; | Thinking | vX.Y.Z</span></span><br><span class="line"><span class="string">  2) &lt;current working directory, full path&gt;</span></span><br><span class="line"><span class="string">  3) [CTX] [#####.........] &lt;used&gt;% &lt;free&gt;% | Size:&lt;window&gt; | In:&lt;cum&gt; Out:&lt;cum&gt;</span></span><br><span class="line"><span class="string">  4) Usage: In:&lt;last_in&gt; Out:&lt;last_out&gt; Crt:&lt;last_cache_create&gt; Rd:&lt;last_cache_read&gt;</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> sys, os, json, datetime</span><br><span class="line"></span><br><span class="line"><span class="comment"># ---------- ANSI ----------</span></span><br><span class="line">R   = <span class="string">&quot;\033[0m&quot;</span></span><br><span class="line">DIM = <span class="string">&quot;\033[2m&quot;</span></span><br><span class="line">B   = <span class="string">&quot;\033[1m&quot;</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">c</span>(<span class="params">n</span>): <span class="keyword">return</span> <span class="string">f&quot;\033[<span class="subst">&#123;n&#125;</span>m&quot;</span></span><br><span class="line">WHITE, GREY = c(<span class="number">97</span>), c(<span class="number">90</span>)</span><br><span class="line">GREEN, YELLOW, RED, CYAN, MAG, BLUE = c(<span class="number">32</span>), c(<span class="number">33</span>), c(<span class="number">31</span>), c(<span class="number">36</span>), c(<span class="number">35</span>), c(<span class="number">34</span>)</span><br><span class="line"></span><br><span class="line">CTX_WINDOW = <span class="built_in">int</span>(os.environ.get(<span class="string">&quot;CC_CTX_WINDOW&quot;</span>, <span class="string">&quot;200000&quot;</span>))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">read_stdin_json</span>():</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        data = sys.stdin.read()</span><br><span class="line">        <span class="keyword">return</span> json.loads(data) <span class="keyword">if</span> data.strip() <span class="keyword">else</span> &#123;&#125;</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        <span class="keyword">return</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">human</span>(<span class="params">n</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;1234 -&gt; 1.2K, 8_000_000 -&gt; 8.0M (drops trailing .0).&quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        n = <span class="built_in">float</span>(n)</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;0&quot;</span></span><br><span class="line">    <span class="keyword">for</span> unit, div <span class="keyword">in</span> ((<span class="string">&quot;M&quot;</span>, <span class="number">1_000_000.0</span>), (<span class="string">&quot;K&quot;</span>, <span class="number">1000.0</span>)):</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">abs</span>(n) &gt;= div:</span><br><span class="line">            v = n / div</span><br><span class="line">            s = <span class="string">f&quot;<span class="subst">&#123;v:<span class="number">.1</span>f&#125;</span>&quot;</span>.rstrip(<span class="string">&quot;0&quot;</span>).rstrip(<span class="string">&quot;.&quot;</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="string">f&quot;<span class="subst">&#123;s&#125;</span><span class="subst">&#123;unit&#125;</span>&quot;</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">str</span>(<span class="built_in">int</span>(n))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">color_for_pct</span>(<span class="params">p</span>):</span><br><span class="line">    <span class="keyword">return</span> GREEN <span class="keyword">if</span> p &lt; <span class="number">50</span> <span class="keyword">else</span> (YELLOW <span class="keyword">if</span> p &lt; <span class="number">80</span> <span class="keyword">else</span> RED)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bar</span>(<span class="params">pct, slots=<span class="number">18</span></span>):</span><br><span class="line">    pct = <span class="built_in">max</span>(<span class="number">0</span>, <span class="built_in">min</span>(<span class="number">100</span>, pct))</span><br><span class="line">    filled = (pct * slots + <span class="number">50</span>) // <span class="number">100</span></span><br><span class="line">    clr = color_for_pct(pct)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f&quot;[<span class="subst">&#123;clr&#125;</span><span class="subst">&#123;<span class="string">&#x27;#&#x27;</span> * filled&#125;</span><span class="subst">&#123;DIM&#125;</span><span class="subst">&#123;<span class="string">&#x27;.&#x27;</span> * (slots - filled)&#125;</span><span class="subst">&#123;R&#125;</span>]&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">override</span>(<span class="params">name, default=<span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    p = os.path.expanduser(<span class="string">f&quot;~/.claude/<span class="subst">&#123;name&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(p, encoding=<span class="string">&quot;utf-8&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            <span class="keyword">return</span> f.read().strip()</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        <span class="keyword">return</span> default</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">read_effort</span>(<span class="params">default=<span class="string">&quot;medium&quot;</span></span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Live-read the effort level from settings.json, where /effort writes it.&quot;&quot;&quot;</span></span><br><span class="line">    p = os.path.expanduser(<span class="string">&quot;~/.claude/settings.json&quot;</span>)</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(p, encoding=<span class="string">&quot;utf-8&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            <span class="keyword">return</span> (json.load(f).get(<span class="string">&quot;effortLevel&quot;</span>) <span class="keyword">or</span> default)</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        <span class="keyword">return</span> default</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">parse_transcript</span>(<span class="params">path</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Return (last_usage_dict, cum_in, cum_out).&quot;&quot;&quot;</span></span><br><span class="line">    last = <span class="literal">None</span></span><br><span class="line">    cum_in = cum_out = <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> path <span class="keyword">or</span> <span class="keyword">not</span> os.path.isfile(path):</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span>, <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(path, encoding=<span class="string">&quot;utf-8&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">            <span class="keyword">for</span> line <span class="keyword">in</span> f:</span><br><span class="line">                line = line.strip()</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> line:</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    o = json.loads(line)</span><br><span class="line">                <span class="keyword">except</span> Exception:</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line">                u = (o.get(<span class="string">&quot;message&quot;</span>) <span class="keyword">or</span> &#123;&#125;).get(<span class="string">&quot;usage&quot;</span>)</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> u:</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line">                last = u</span><br><span class="line">                cum_in += (u.get(<span class="string">&quot;input_tokens&quot;</span>, <span class="number">0</span>)</span><br><span class="line">                           + u.get(<span class="string">&quot;cache_creation_input_tokens&quot;</span>, <span class="number">0</span>)</span><br><span class="line">                           + u.get(<span class="string">&quot;cache_read_input_tokens&quot;</span>, <span class="number">0</span>))</span><br><span class="line">                cum_out += u.get(<span class="string">&quot;output_tokens&quot;</span>, <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">except</span> Exception:</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    <span class="keyword">return</span> last, cum_in, cum_out</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    j = read_stdin_json()</span><br><span class="line"></span><br><span class="line">    model = (j.get(<span class="string">&quot;model&quot;</span>) <span class="keyword">or</span> &#123;&#125;).get(<span class="string">&quot;display_name&quot;</span>) <span class="keyword">or</span> <span class="string">&quot;Claude&quot;</span></span><br><span class="line">    version = j.get(<span class="string">&quot;version&quot;</span>) <span class="keyword">or</span> <span class="string">&quot;&quot;</span></span><br><span class="line">    cwd = (j.get(<span class="string">&quot;workspace&quot;</span>) <span class="keyword">or</span> &#123;&#125;).get(<span class="string">&quot;current_dir&quot;</span>) <span class="keyword">or</span> j.get(<span class="string">&quot;cwd&quot;</span>) <span class="keyword">or</span> os.getcwd()</span><br><span class="line">    transcript = j.get(<span class="string">&quot;transcript_path&quot;</span>) <span class="keyword">or</span> <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    now = datetime.datetime.now().strftime(<span class="string">&quot;%H:%M&quot;</span>)</span><br><span class="line">    effort = read_effort(<span class="string">&quot;medium&quot;</span>)</span><br><span class="line">    thinking_raw = override(<span class="string">&quot;statusline-thinking&quot;</span>, <span class="string">&quot;on&quot;</span>).lower()</span><br><span class="line">    thinking_on = thinking_raw <span class="keyword">not</span> <span class="keyword">in</span> (<span class="string">&quot;&quot;</span>, <span class="string">&quot;off&quot;</span>, <span class="string">&quot;0&quot;</span>, <span class="string">&quot;false&quot;</span>, <span class="string">&quot;no&quot;</span>)</span><br><span class="line"></span><br><span class="line">    last, cum_in, cum_out = parse_transcript(transcript)</span><br><span class="line">    ctx_used = <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> last:</span><br><span class="line">        ctx_used = (last.get(<span class="string">&quot;input_tokens&quot;</span>, <span class="number">0</span>)</span><br><span class="line">                    + last.get(<span class="string">&quot;cache_creation_input_tokens&quot;</span>, <span class="number">0</span>)</span><br><span class="line">                    + last.get(<span class="string">&quot;cache_read_input_tokens&quot;</span>, <span class="number">0</span>))</span><br><span class="line">    used_pct = <span class="built_in">int</span>(<span class="built_in">round</span>(<span class="number">100.0</span> * ctx_used / CTX_WINDOW)) <span class="keyword">if</span> CTX_WINDOW <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">    used_pct = <span class="built_in">max</span>(<span class="number">0</span>, <span class="built_in">min</span>(<span class="number">100</span>, used_pct))</span><br><span class="line">    free_pct = <span class="number">100</span> - used_pct</span><br><span class="line"></span><br><span class="line">    li = last.get(<span class="string">&quot;input_tokens&quot;</span>, <span class="number">0</span>) <span class="keyword">if</span> last <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">    lo = last.get(<span class="string">&quot;output_tokens&quot;</span>, <span class="number">0</span>) <span class="keyword">if</span> last <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">    lc = last.get(<span class="string">&quot;cache_creation_input_tokens&quot;</span>, <span class="number">0</span>) <span class="keyword">if</span> last <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">    lr = last.get(<span class="string">&quot;cache_read_input_tokens&quot;</span>, <span class="number">0</span>) <span class="keyword">if</span> last <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># ---- line 1 ----</span></span><br><span class="line">    seg = [<span class="string">f&quot;<span class="subst">&#123;B&#125;</span><span class="subst">&#123;GREEN&#125;</span><span class="subst">&#123;model&#125;</span><span class="subst">&#123;R&#125;</span>&quot;</span>, <span class="string">f&quot;<span class="subst">&#123;WHITE&#125;</span><span class="subst">&#123;now&#125;</span><span class="subst">&#123;R&#125;</span>&quot;</span>,</span><br><span class="line">           <span class="string">f&quot;<span class="subst">&#123;YELLOW&#125;</span>Effort:<span class="subst">&#123;effort&#125;</span><span class="subst">&#123;R&#125;</span>&quot;</span>]</span><br><span class="line">    <span class="keyword">if</span> thinking_on:</span><br><span class="line">        seg.append(<span class="string">f&quot;<span class="subst">&#123;MAG&#125;</span><span class="subst">&#123;B&#125;</span>Thinking<span class="subst">&#123;R&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">if</span> version:</span><br><span class="line">        seg.append(<span class="string">f&quot;<span class="subst">&#123;DIM&#125;</span>v<span class="subst">&#123;version&#125;</span><span class="subst">&#123;R&#125;</span>&quot;</span>)</span><br><span class="line">    line1 = <span class="string">f&quot; <span class="subst">&#123;DIM&#125;</span>|<span class="subst">&#123;R&#125;</span> &quot;</span>.join(seg)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># ---- line 2 ----</span></span><br><span class="line">    line2 = <span class="string">f&quot;<span class="subst">&#123;WHITE&#125;</span><span class="subst">&#123;cwd&#125;</span><span class="subst">&#123;R&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># ---- line 3 ----</span></span><br><span class="line">    line3 = (<span class="string">f&quot;<span class="subst">&#123;CYAN&#125;</span>[CTX]<span class="subst">&#123;R&#125;</span> <span class="subst">&#123;bar(used_pct)&#125;</span> &quot;</span></span><br><span class="line">             <span class="string">f&quot;<span class="subst">&#123;color_for_pct(used_pct)&#125;</span><span class="subst">&#123;used_pct&#125;</span>%<span class="subst">&#123;R&#125;</span> <span class="subst">&#123;DIM&#125;</span><span class="subst">&#123;free_pct&#125;</span>%<span class="subst">&#123;R&#125;</span> &quot;</span></span><br><span class="line">             <span class="string">f&quot;<span class="subst">&#123;DIM&#125;</span>|<span class="subst">&#123;R&#125;</span> <span class="subst">&#123;CYAN&#125;</span>Size:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(CTX_WINDOW)&#125;</span> &quot;</span></span><br><span class="line">             <span class="string">f&quot;<span class="subst">&#123;DIM&#125;</span>|<span class="subst">&#123;R&#125;</span> <span class="subst">&#123;CYAN&#125;</span>In:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(cum_in)&#125;</span> <span class="subst">&#123;CYAN&#125;</span>Out:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(cum_out)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># ---- line 4 ----</span></span><br><span class="line">    line4 = (<span class="string">f&quot;<span class="subst">&#123;BLUE&#125;</span>Usage:<span class="subst">&#123;R&#125;</span> <span class="subst">&#123;CYAN&#125;</span>In:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(li)&#125;</span> <span class="subst">&#123;CYAN&#125;</span>Out:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(lo)&#125;</span> &quot;</span></span><br><span class="line">             <span class="string">f&quot;<span class="subst">&#123;CYAN&#125;</span>Crt:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(lc)&#125;</span> <span class="subst">&#123;CYAN&#125;</span>Rd:<span class="subst">&#123;R&#125;</span><span class="subst">&#123;human(lr)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    sys.stdout.write(<span class="string">&quot;\n&quot;</span>.join([line1, line2, line3, line4]))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<h2 id="怎么设置"><a href="#怎么设置" class="headerlink" title="怎么设置"></a>怎么设置</h2><h3 id="第一步：放脚本"><a href="#第一步：放脚本" class="headerlink" title="第一步：放脚本"></a>第一步：放脚本</h3><p>把上面的脚本保存为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/.claude/statusline-command.py</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Windows 上 <code>~</code> 就是 <code>C:\Users\你的用户名</code>，所以完整路径是<br><code>C:\Users\你的用户名\.claude\statusline-command.py</code>。</p>
+</blockquote>
+<h3 id="第二步：在-settings-json-里启用"><a href="#第二步：在-settings-json-里启用" class="headerlink" title="第二步：在 settings.json 里启用"></a>第二步：在 settings.json 里启用</h3><p>编辑 <code>~/.claude/settings.json</code>，加上 <code>statusLine</code> 字段：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;statusLine&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;command&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;command&quot;</span><span class="punctuation">:</span> <span class="string">&quot;python ~/.claude/statusline-command.py&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>python</code> 命令不在 PATH 里，就换成 Python 的完整路径，比如<br><code>&quot;command&quot;: &quot;C:/Users/你的用户名/AppData/Local/Programs/Python/Python312/python.exe ~/.claude/statusline-command.py&quot;</code>。</p>
+<p>保存后状态栏会在下一次交互时自动变成新样式，无需重启。</p>
+<h3 id="第三步（可选）：调整"><a href="#第三步（可选）：调整" class="headerlink" title="第三步（可选）：调整"></a>第三步（可选）：调整</h3><ul>
+<li><strong>上下文窗口大小</strong>：默认按 200K 算。如果你的模型窗口不是 200K，设个环境变量 <code>CC_CTX_WINDOW</code>，比如 <code>CC_CTX_WINDOW=1000000</code>。</li>
+<li><strong>隐藏 Thinking</strong>：新建文件 <code>~/.claude/statusline-thinking</code>，内容写 <code>off</code>。</li>
+<li><strong>进度条样式</strong>：改 <code>bar()</code> 函数里的 <code>&#39;#&#39;</code> 和 <code>&#39;.&#39;</code>，或者 <code>slots</code>（格子数）。</li>
+</ul>
+<h2 id="自己测试一下"><a href="#自己测试一下" class="headerlink" title="自己测试一下"></a>自己测试一下</h2><p>写完脚本想确认它能跑，不用真的进 Claude Code，直接喂一段 JSON 给它（注意要带上真实的 transcript 路径才会有 token 数据）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;&#123;&quot;model&quot;:&#123;&quot;display_name&quot;:&quot;GLM-5.1&quot;&#125;,&quot;version&quot;:&quot;2.1.126&quot;,&quot;workspace&quot;:&#123;&quot;current_dir&quot;:&quot;C:/Users/Alan&quot;&#125;,&quot;transcript_path&quot;:&quot;你的某个会话.jsonl的路径&quot;&#125;&#x27;</span> | python ~/.claude/statusline-command.py</span><br></pre></td></tr></table></figure>
+
+<p>能打印出四行带颜色的文字就说明成功了。</p>
+<h2 id="踩过的坑"><a href="#踩过的坑" class="headerlink" title="踩过的坑"></a>踩过的坑</h2><ol>
+<li><strong>没有 jq 不要硬上 sed</strong>。纯文本解析嵌套 JSON 很脆，两个进度条取到同一个值是我第一版的真实 bug。有 Python 就用 Python。</li>
+<li><strong>effort 不在 stdin 里</strong>。别从 stdin 找它，去读 <code>settings.json</code> 的 <code>effortLevel</code>，这样才实时。</li>
+<li><strong>Windows 路径转义</strong>。脚本里读文件用 <code>os.path.expanduser(&quot;~/...&quot;)</code>，跨平台都能用；测试时拼 JSON 字符串注意反斜杠转义。</li>
+<li><strong>状态栏脚本要快、要静默</strong>。它会被频繁调用，任何异常都要吞掉（脚本里全程 <code>try/except</code> 兜底），否则状态栏会闪报错。</li>
+</ol>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>Claude Code 的 statusLine 本质就是「给它一个命令，它喂 JSON，你打印字符串」。把 stdin JSON、transcript JSONL、settings.json 三个数据源拼起来，就能做出一个信息密度高、还实时刷新的状态栏。核心就一个脚本 + settings.json 里三行配置。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%99%E6%98%AF%E4%BB%80%E4%B9%88"><span class="toc-number">1.</span> <span class="toc-text">这是什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="toc-number">2.</span> <span class="toc-text">数据从哪来</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-stdin-%E7%9A%84-JSON%EF%BC%88Claude-Code-%E6%AF%8F%E6%AC%A1%E5%88%B7%E6%96%B0%E9%83%BD%E7%BB%99%EF%BC%89"><span class="toc-number">2.1.</span> <span class="toc-text">1. stdin 的 JSON（Claude Code 每次刷新都给）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-transcript-JSONL%EF%BC%88token-%E6%95%B0%E6%8D%AE%E7%9A%84%E7%9C%9F%E6%AD%A3%E6%9D%A5%E6%BA%90%EF%BC%89"><span class="toc-number">2.2.</span> <span class="toc-text">2. transcript JSONL（token 数据的真正来源）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Effort-%E7%AD%89%E7%BA%A7%EF%BC%88%E5%AE%9E%E6%97%B6%E8%AF%BB-settings-json%EF%BC%89"><span class="toc-number">2.3.</span> <span class="toc-text">3. Effort 等级（实时读 settings.json）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Thinking-%E5%BC%80%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">4. Thinking 开关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8-Python-%E8%80%8C%E4%B8%8D%E6%98%AF-bash"><span class="toc-number">3.</span> <span class="toc-text">为什么用 Python 而不是 bash</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%8C%E6%95%B4%E8%84%9A%E6%9C%AC"><span class="toc-number">4.</span> <span class="toc-text">完整脚本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%8E%E4%B9%88%E8%AE%BE%E7%BD%AE"><span class="toc-number">5.</span> <span class="toc-text">怎么设置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%94%BE%E8%84%9A%E6%9C%AC"><span class="toc-number">5.1.</span> <span class="toc-text">第一步：放脚本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%9C%A8-settings-json-%E9%87%8C%E5%90%AF%E7%94%A8"><span class="toc-number">5.2.</span> <span class="toc-text">第二步：在 settings.json 里启用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89%EF%BC%9A%E8%B0%83%E6%95%B4"><span class="toc-number">5.3.</span> <span class="toc-text">第三步（可选）：调整</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%87%AA%E5%B7%B1%E6%B5%8B%E8%AF%95%E4%B8%80%E4%B8%8B"><span class="toc-number">6.</span> <span class="toc-text">自己测试一下</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B8%A9%E8%BF%87%E7%9A%84%E5%9D%91"><span class="toc-number">7.</span> <span class="toc-text">踩过的坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">小结</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/06/14/claude-code-custom-statusline/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/06/14/claude-code-custom-statusline/&text=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/06/14/claude-code-custom-statusline/&is_video=false&description=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=给 Claude Code 写一个实时多行状态栏（Python statusLine）&body=Check out this article: http://example.com/2026/06/14/claude-code-custom-statusline/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/06/14/claude-code-custom-statusline/&title=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/06/14/claude-code-custom-statusline/&name=给 Claude Code 写一个实时多行状态栏（Python statusLine）&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/06/14/claude-code-custom-statusline/&t=给 Claude Code 写一个实时多行状态栏（Python statusLine）"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
