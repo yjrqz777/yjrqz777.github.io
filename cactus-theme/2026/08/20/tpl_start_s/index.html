@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.Sbal Branch And Link   跳到 mips_cm_map 把返回地址保存到 ra  jrJump Register 0xbe10dff0 是什么地址？MT7621 是 MIPS32。MIPS32 经典地址空间里： 12345670x80000000 ~">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621-uboot(2026.07)笔记-01">
+<meta property="og:url" content="http://example.com/2026/08/20/tpl_start_s/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.Sbal Branch And Link   跳到 mips_cm_map 把返回地址保存到 ra  jrJump Register 0xbe10dff0 是什么地址？MT7621 是 MIPS32。MIPS32 经典地址空间里： 12345670x80000000 ~">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-20T06:30:00.000Z">
+<meta property="article:modified_time" content="2026-08-22T13:03:13.945Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>HLK-7621-uboot(2026.07)笔记-01</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/08/21/tpl/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/08/15/openwrt-mt7621-build-and-tftp-recovery/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/20/tpl_start_s/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/20/tpl_start_s/&text=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/20/tpl_start_s/&is_video=false&description=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621-uboot(2026.07)笔记-01&body=Check out this article: http://example.com/2026/08/20/tpl_start_s/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/20/tpl_start_s/&name=HLK-7621-uboot(2026.07)笔记-01&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/20/tpl_start_s/&t=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-tpl-x2F-start-S"><span class="toc-number">1.</span> <span class="toc-text">arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.S</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#bal"><span class="toc-number">1.1.</span> <span class="toc-text">bal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#jr"><span class="toc-number">1.2.</span> <span class="toc-text">jr</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0xbe10dff0-%E6%98%AF%E4%BB%80%E4%B9%88%E5%9C%B0%E5%9D%80%EF%BC%9F"><span class="toc-number">1.3.</span> <span class="toc-text">0xbe10dff0 是什么地址？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#KSEG0-KSEG1"><span class="toc-number">1.3.1.</span> <span class="toc-text">KSEG0 KSEG1</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#set-noreorder"><span class="toc-number">1.4.</span> <span class="toc-text">.set noreorder</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#macro-init-wr-sel"><span class="toc-number">1.5.</span> <span class="toc-text">.macro init_wr sel</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Watchpoint"><span class="toc-number">1.5.1.</span> <span class="toc-text">Watchpoint</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#I-R-W"><span class="toc-number">1.5.2.</span> <span class="toc-text">I R W</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#mtc0%EF%BC%9AMove-To-Coprocessor-0-MIPS-CP0-x3D-Coprocessor-0"><span class="toc-number">1.5.3.</span> <span class="toc-text">mtc0：Move To Coprocessor 0 (MIPS:CP0 &#x3D; Coprocessor 0)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MTC0-zero-CP0-WATCHLO-sel"><span class="toc-number">1.5.4.</span> <span class="toc-text">MTC0 zero, CP0_WATCHLO,\sel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#zero-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.5.4.1.</span> <span class="toc-text">zero 是什么？</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#uhi-mips-exception"><span class="toc-number">1.6.</span> <span class="toc-text">uhi_mips_exception</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#sdbbp-1"><span class="toc-number">1.7.</span> <span class="toc-text">sdbbp 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ENTRY-start"><span class="toc-number">1.8.</span> <span class="toc-text">ENTRY(_start)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#b-reset"><span class="toc-number">1.9.</span> <span class="toc-text">b reset</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#branch-delay-slot"><span class="toc-number">1.9.1.</span> <span class="toc-text">branch delay slot</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mtc0-zero-CP0-COUNT-MIPS-CPU-%E5%86%85%E9%83%A8%E7%9A%84%E4%B8%80%E4%B8%AA%E8%AE%A1%E6%95%B0%E5%99%A8"><span class="toc-number">1.10.</span> <span class="toc-text">mtc0 zero, CP0_COUNT(MIPS CPU 内部的一个计数器)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1b-1f"><span class="toc-number">1.11.</span> <span class="toc-text">1b 1f</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#org-0x200"><span class="toc-number">1.12.</span> <span class="toc-text">.org 0x200</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#CM"><span class="toc-number">2.</span> <span class="toc-text">CM</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#mips-cm-map"><span class="toc-number">2.1.</span> <span class="toc-text">mips_cm_map</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mips-sram-init"><span class="toc-number">2.2.</span> <span class="toc-text">mips_sram_init</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#lisp-SP-ADDR-TEMP"><span class="toc-number">2.3.</span> <span class="toc-text">li	sp, SP_ADDR_TEMP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#baltpl-main"><span class="toc-number">2.4.</span> <span class="toc-text">bal	tpl_main</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        HLK-7621-uboot(2026.07)笔记-01
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-08-20T06:30:00.000Z" class="dt-published" itemprop="datePublished">2026-08-20</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/OpenWrt/">OpenWrt</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/OpenWrt/" rel="tag">OpenWrt</a>, <a class="p-category" href="/cactus-theme/tags/U-Boot/" rel="tag">U-Boot</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-tpl-x2F-start-S"><a href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-tpl-x2F-start-S" class="headerlink" title="arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.S"></a>arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.S</h1><h2 id="bal"><a href="#bal" class="headerlink" title="bal"></a>bal</h2><ul>
+<li>Branch And Link</li>
+</ul>
+<ol>
+<li>跳到 mips_cm_map</li>
+<li>把返回地址保存到 ra</li>
+</ol>
+<h2 id="jr"><a href="#jr" class="headerlink" title="jr"></a>jr</h2><p>Jump Register</p>
+<h2 id="0xbe10dff0-是什么地址？"><a href="#0xbe10dff0-是什么地址？" class="headerlink" title="0xbe10dff0 是什么地址？"></a>0xbe10dff0 是什么地址？</h2><p>MT7621 是 MIPS32。<br>MIPS32 经典地址空间里：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">0x80000000 ~ 0x9fffffff    KSEG0</span><br><span class="line">                            cached</span><br><span class="line">                            不经过 TLB</span><br><span class="line"></span><br><span class="line">0xa0000000 ~ 0xbfffffff    KSEG1</span><br><span class="line">                            uncached</span><br><span class="line">                            不经过 TLB</span><br></pre></td></tr></table></figure>
+<h3 id="KSEG0-KSEG1"><a href="#KSEG0-KSEG1" class="headerlink" title="KSEG0 KSEG1"></a>KSEG0 KSEG1</h3><ul>
+<li>是一段 CPU 的虚拟地址空间</li>
+</ul>
+<h2 id="set-noreorder"><a href="#set-noreorder" class="headerlink" title=".set noreorder"></a>.set noreorder</h2><ul>
+<li>它不是 CPU 指令，而是告诉 汇编器：不要擅自帮我重新排列指令。</li>
+</ul>
+<h2 id="macro-init-wr-sel"><a href="#macro-init-wr-sel" class="headerlink" title=".macro init_wr sel"></a>.macro init_wr sel</h2><ul>
+<li>定义一个汇编宏 #define init_wr(sel) …</li>
+</ul>
+<h3 id="Watchpoint"><a href="#Watchpoint" class="headerlink" title="Watchpoint"></a>Watchpoint</h3><ul>
+<li>硬件监视点</li>
+</ul>
+<h3 id="I-R-W"><a href="#I-R-W" class="headerlink" title="I R W"></a>I R W</h3><ol>
+<li>I：Instruction Fetch<br>监视CPU取指令</li>
+<li>R：Read<br>监视数据读取</li>
+<li>W：Write<br>监视数据写入</li>
+</ol>
+<h3 id="mtc0：Move-To-Coprocessor-0-MIPS-CP0-x3D-Coprocessor-0"><a href="#mtc0：Move-To-Coprocessor-0-MIPS-CP0-x3D-Coprocessor-0" class="headerlink" title="mtc0：Move To Coprocessor 0 (MIPS:CP0 &#x3D; Coprocessor 0)"></a>mtc0：Move To Coprocessor 0 (MIPS:CP0 &#x3D; Coprocessor 0)</h3><ul>
+<li>cp0: 不是普通协处理器，它实际上是 CPU 的 系统控制寄存器组</li>
+</ul>
+<p>类似 ARM Cortex-M 的：<br>SCB<br>NVIC<br>SysTick<br>MPU<br>Fault status</p>
+<h3 id="MTC0-zero-CP0-WATCHLO-sel"><a href="#MTC0-zero-CP0-WATCHLO-sel" class="headerlink" title="MTC0 zero, CP0_WATCHLO,\sel"></a>MTC0 zero, CP0_WATCHLO,\sel</h3><ol>
+<li>$zero &#x3D; 0</li>
+<li>CP0 WatchLo(sel)</li>
+<li>WatchLo &#x3D; 0</li>
+</ol>
+<h4 id="zero-是什么？"><a href="#zero-是什么？" class="headerlink" title="zero 是什么？"></a>zero 是什么？</h4><ul>
+<li>MIPS 有一个特别的寄存器：$0 $zero 它永远等于：0</li>
+</ul>
+<h2 id="uhi-mips-exception"><a href="#uhi-mips-exception" class="headerlink" title="uhi_mips_exception"></a>uhi_mips_exception</h2><ul>
+<li>UHI 是 MIPS 的：Unified Hosting Interface</li>
+<li>可以理解为 MIPS 的 semihosting 接口 (调试接口)</li>
+<li>如果发生异常，就调用 UHI 把异常交给调试环境</li>
+</ul>
+<h2 id="sdbbp-1"><a href="#sdbbp-1" class="headerlink" title="sdbbp 1"></a>sdbbp 1</h2><ul>
+<li>Software Debug Breakpoint</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">#define SP_ADDR_TEMP		0xbe10dff0</span><br><span class="line"></span><br><span class="line">	.set noreorder</span><br><span class="line"></span><br><span class="line">	.macro init_wr sel</span><br><span class="line">	MTC0	zero, CP0_WATCHLO,\sel</span><br><span class="line">	mtc0	t1, CP0_WATCHHI,\sel</span><br><span class="line">	.endm</span><br><span class="line"></span><br><span class="line">	.macro uhi_mips_exception</span><br><span class="line">	move	k0, t9		# preserve t9 in k0</span><br><span class="line">	move	k1, a0		# preserve a0 in k1</span><br><span class="line">	li	t9, 15		# UHI exception operation</span><br><span class="line">	li	a0, 0		# Use hard register context</span><br><span class="line">	sdbbp	1		# Invoke UHI operation</span><br><span class="line">	.endm</span><br></pre></td></tr></table></figure>
+<p>实际上可以粗略翻译成:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * DDR还不能用。</span><br><span class="line"> * 暂时使用MT7621内部SRAM作为栈。</span><br><span class="line"> */</span><br><span class="line">#define TEMP_STACK 0xbe10dff0;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * 不允许汇编器自动调换指令顺序，</span><br><span class="line"> * 因为后面大量依赖MIPS delay slot和CP0操作顺序。</span><br><span class="line"> */</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * 清理某一组CPU硬件Watchpoint。</span><br><span class="line"> */</span><br><span class="line">#define init_watch_register(sel)        \</span><br><span class="line">&#123;                                       \</span><br><span class="line">    CP0_WATCHLO[sel] = 0;               \</span><br><span class="line">    CP0_WATCHHI[sel] = 0x7;             \</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * 如果TPL早期发生TLB/cache/general等异常，</span><br><span class="line"> * 通过MIPS UHI/debug接口通知调试环境。</span><br><span class="line"> */</span><br><span class="line">void early_exception(void)</span><br><span class="line">&#123;</span><br><span class="line">    k0 = t9;</span><br><span class="line">    k1 = a0;</span><br><span class="line"></span><br><span class="line">    t9 = UHI_EXCEPTION;      // 15</span><br><span class="line">    a0 = HARD_REGISTER_CONTEXT;</span><br><span class="line"></span><br><span class="line">    SDBBP(1);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ENTRY-start"><a href="#ENTRY-start" class="headerlink" title="ENTRY(_start)"></a>ENTRY(_start)</h2><ul>
+<li>把 <code>_start</code> 声明成一个可以被链接器识别的全局入口符号</li>
+<li>从这里开始，是这段 TPL 镜像的入口 _start</li>
+</ul>
+<h2 id="b-reset"><a href="#b-reset" class="headerlink" title="b reset"></a>b reset</h2><ol>
+<li>执行 b reset</li>
+<li>执行它后面的那一条指令(MIPS 的 branch delay slot)</li>
+<li>才真正跳到 reset</li>
+</ol>
+<h3 id="branch-delay-slot"><a href="#branch-delay-slot" class="headerlink" title="branch delay slot"></a>branch delay slot</h3><ul>
+<li>分支延迟槽</li>
+<li>不能空着：CPU 还是会去取 PC+4 那 4 个字节，当成 delay slot 指令执行</li>
+</ul>
+<h2 id="mtc0-zero-CP0-COUNT-MIPS-CPU-内部的一个计数器"><a href="#mtc0-zero-CP0-COUNT-MIPS-CPU-内部的一个计数器" class="headerlink" title="mtc0 zero, CP0_COUNT(MIPS CPU 内部的一个计数器)"></a>mtc0 zero, CP0_COUNT(MIPS CPU 内部的一个计数器)</h2><ul>
+<li>把一个通用寄存器的值写入 CP0 寄存器 (CP0_COUNT &#x3D; 0)</li>
+</ul>
+<h2 id="1b-1f"><a href="#1b-1f" class="headerlink" title="1b 1f"></a>1b 1f</h2><p>1b: 跳转到前（backward）一个1标签<br>1f: 跳转到后（forward）一个1标签</p>
+<h2 id="org-0x200"><a href="#org-0x200" class="headerlink" title=".org 0x200"></a>.org 0x200</h2><ul>
+<li>镜像地址布局控制</li>
+<li>将后面的代码放到 0x200，这里将异常地址放入 uhi_mips_exception 进行处理<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">文件offset 0x000 → CPU地址 0xBFC00000</span><br><span class="line">文件offset 0x200 → CPU地址 0xBFC00200</span><br><span class="line">文件offset 0x380 → CPU地址 0xBFC00380</span><br><span class="line">文件offset 0x480 → CPU地址 0xBFC00480</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="CM"><a href="#CM" class="headerlink" title="CM"></a>CM</h1><ul>
+<li>CM (Coherence Manager) :一致性管理器<br>: 两个 CPU Core 各自有 Cache 时，怎么保证看到的数据是一致的？</li>
+</ul>
+<p>CM 是一个硬件模块，而 GCR 是你用来“配置和查看 CM”的那组寄存器</p>
+<p>有很多控制寄存器，统称：<br>GCR(Global Configuration Registers)<br>全局配置寄存器</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"> Core 0</span><br><span class="line">┌───────┐</span><br><span class="line">│ L1 D$ │</span><br><span class="line">│ L1 I$ │</span><br><span class="line">└───┬───┘</span><br><span class="line">    │</span><br><span class="line">    │</span><br><span class="line"> ┌──┴───┐</span><br><span class="line"> │  CM  │</span><br><span class="line"> └──┬───┘</span><br><span class="line">    │</span><br><span class="line">    │</span><br><span class="line">┌───┴───┐</span><br><span class="line">│ L1 D$ │</span><br><span class="line">│ L1 I$ │</span><br><span class="line">└───────┘</span><br><span class="line"> Core 1</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="mips-cm-map"><a href="#mips-cm-map" class="headerlink" title="mips_cm_map"></a>mips_cm_map</h2><p>检查 MT7621&#x2F;MIPS CPU 是否存在 CM（Coherence Manager），如果存在，就检查并把 CM 的 GCR 寄存器窗口映射到 U-Boot 配置的 CONFIG_MIPS_CM_BASE 地址。</p>
+<p>CPU 支持 CM 的话，把多核一致性管理器 CM 的寄存器窗口映射到 U-Boot 预期的位置；不支持的话什么也不干，直接返回。</p>
+<p>让后面的 U-Boot 代码知道：“以后去固定地址找 CM 寄存器。</p>
+<p>告诉 U-Boot“CM 硬件本体在哪”，而是告诉&#x2F;保证 U-Boot 以后去哪个固定地址访问 CM 的 GCR 寄存器窗口</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">void mips_cm_map(void)</span><br><span class="line">&#123;</span><br><span class="line">    if (Config3不存在)</span><br><span class="line">        return;</span><br><span class="line"></span><br><span class="line">    if (!(Config3 &amp; CMGCR))</span><br><span class="line">        return;</span><br><span class="line"></span><br><span class="line">retry:</span><br><span class="line">    current_base = CMGCRBASE &lt;&lt; 4;</span><br><span class="line"></span><br><span class="line">    if (current_base == CONFIG_MIPS_CM_BASE)</span><br><span class="line">        return;</span><br><span class="line"></span><br><span class="line">    // 通过当前GCR地址访问GCR寄存器</span><br><span class="line">    GCR_BASE_UPPER = 0;</span><br><span class="line">    GCR_BASE = CONFIG_MIPS_CM_BASE;</span><br><span class="line"></span><br><span class="line">    goto retry;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">确认 CM 存在</span><br><span class="line">      ↓</span><br><span class="line">找到当前 GCR 地址</span><br><span class="line">      ↓</span><br><span class="line">是不是已经在目标地址？</span><br><span class="line">   ┌──────┴──────┐</span><br><span class="line">   是            否</span><br><span class="line">   ↓             ↓</span><br><span class="line"> return       修改GCR BASE</span><br><span class="line">                 ↓</span><br><span class="line">              再检查</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="mips-sram-init"><a href="#mips-sram-init" class="headerlink" title="mips_sram_init"></a>mips_sram_init</h2><ol>
+<li>先复位 PSE SRAM。</li>
+<li>解除复位，并开启 RAM 模式和内存使能</li>
+</ol>
+<h2 id="lisp-SP-ADDR-TEMP"><a href="#lisp-SP-ADDR-TEMP" class="headerlink" title="li	sp, SP_ADDR_TEMP"></a>li	sp, SP_ADDR_TEMP</h2><ul>
+<li>把 sp 指向 SRAM</li>
+<li>设置的是临时栈</li>
+<li>这个位置落在 MT7621 的 FE&#x2F;PSE 片内 SRAM 区域附近</li>
+</ul>
+<h2 id="baltpl-main"><a href="#baltpl-main" class="headerlink" title="bal	tpl_main"></a>bal	tpl_main</h2><ul>
+<li>执行<code>tpl_main</code></li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-tpl-x2F-start-S"><span class="toc-number">1.</span> <span class="toc-text">arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;tpl&#x2F;start.S</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#bal"><span class="toc-number">1.1.</span> <span class="toc-text">bal</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#jr"><span class="toc-number">1.2.</span> <span class="toc-text">jr</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0xbe10dff0-%E6%98%AF%E4%BB%80%E4%B9%88%E5%9C%B0%E5%9D%80%EF%BC%9F"><span class="toc-number">1.3.</span> <span class="toc-text">0xbe10dff0 是什么地址？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#KSEG0-KSEG1"><span class="toc-number">1.3.1.</span> <span class="toc-text">KSEG0 KSEG1</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#set-noreorder"><span class="toc-number">1.4.</span> <span class="toc-text">.set noreorder</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#macro-init-wr-sel"><span class="toc-number">1.5.</span> <span class="toc-text">.macro init_wr sel</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Watchpoint"><span class="toc-number">1.5.1.</span> <span class="toc-text">Watchpoint</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#I-R-W"><span class="toc-number">1.5.2.</span> <span class="toc-text">I R W</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#mtc0%EF%BC%9AMove-To-Coprocessor-0-MIPS-CP0-x3D-Coprocessor-0"><span class="toc-number">1.5.3.</span> <span class="toc-text">mtc0：Move To Coprocessor 0 (MIPS:CP0 &#x3D; Coprocessor 0)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MTC0-zero-CP0-WATCHLO-sel"><span class="toc-number">1.5.4.</span> <span class="toc-text">MTC0 zero, CP0_WATCHLO,\sel</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#zero-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.5.4.1.</span> <span class="toc-text">zero 是什么？</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#uhi-mips-exception"><span class="toc-number">1.6.</span> <span class="toc-text">uhi_mips_exception</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#sdbbp-1"><span class="toc-number">1.7.</span> <span class="toc-text">sdbbp 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ENTRY-start"><span class="toc-number">1.8.</span> <span class="toc-text">ENTRY(_start)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#b-reset"><span class="toc-number">1.9.</span> <span class="toc-text">b reset</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#branch-delay-slot"><span class="toc-number">1.9.1.</span> <span class="toc-text">branch delay slot</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mtc0-zero-CP0-COUNT-MIPS-CPU-%E5%86%85%E9%83%A8%E7%9A%84%E4%B8%80%E4%B8%AA%E8%AE%A1%E6%95%B0%E5%99%A8"><span class="toc-number">1.10.</span> <span class="toc-text">mtc0 zero, CP0_COUNT(MIPS CPU 内部的一个计数器)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1b-1f"><span class="toc-number">1.11.</span> <span class="toc-text">1b 1f</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#org-0x200"><span class="toc-number">1.12.</span> <span class="toc-text">.org 0x200</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#CM"><span class="toc-number">2.</span> <span class="toc-text">CM</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#mips-cm-map"><span class="toc-number">2.1.</span> <span class="toc-text">mips_cm_map</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mips-sram-init"><span class="toc-number">2.2.</span> <span class="toc-text">mips_sram_init</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#lisp-SP-ADDR-TEMP"><span class="toc-number">2.3.</span> <span class="toc-text">li	sp, SP_ADDR_TEMP</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#baltpl-main"><span class="toc-number">2.4.</span> <span class="toc-text">bal	tpl_main</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/20/tpl_start_s/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/20/tpl_start_s/&text=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/20/tpl_start_s/&is_video=false&description=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621-uboot(2026.07)笔记-01&body=Check out this article: http://example.com/2026/08/20/tpl_start_s/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/20/tpl_start_s/&title=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/20/tpl_start_s/&name=HLK-7621-uboot(2026.07)笔记-01&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/20/tpl_start_s/&t=HLK-7621-uboot(2026.07)笔记-01"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
