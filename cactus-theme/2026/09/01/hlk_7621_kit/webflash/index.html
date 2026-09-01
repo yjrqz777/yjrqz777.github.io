@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="记录 HLK-7621 U-Boot webflash 上传、RAM 加载、uImage 启动与固件大小校验过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录">
+<meta property="og:url" content="http://example.com/2026/09/01/hlk_7621_kit/webflash/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="记录 HLK-7621 U-Boot webflash 上传、RAM 加载、uImage 启动与固件大小校验过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-01T05:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-01T06:59:55.023Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta property="article:tag" content="lwIP">
+<meta property="article:tag" content="WebFlash">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/08/27/hlk_7621_kit/boot-method/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/01/hlk_7621_kit/webflash/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&text=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&is_video=false&description=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录&body=Check out this article: http://example.com/2026/09/01/hlk_7621_kit/webflash/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&name=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/01/hlk_7621_kit/webflash/&t=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-09-01T05:00:00.000Z" class="dt-published" itemprop="datePublished">2026-09-01</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/OpenWrt/">OpenWrt</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/OpenWrt/" rel="tag">OpenWrt</a>, <a class="p-category" href="/cactus-theme/tags/U-Boot/" rel="tag">U-Boot</a>, <a class="p-category" href="/cactus-theme/tags/WebFlash/" rel="tag">WebFlash</a>, <a class="p-category" href="/cactus-theme/tags/lwIP/" rel="tag">lwIP</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="1-当前状态"><a href="#1-当前状态" class="headerlink" title="1 当前状态"></a>1 当前状态</h1><ul>
+<li>U-Boot 使用 lwIP 网络栈。</li>
+<li>Web 恢复命令为 <code>webflash</code>，监听 TCP 80 端口。</li>
+<li>默认地址：<code>192.168.31.66/24</code>。</li>
+<li>默认上传地址：<code>0x83000000</code>。</li>
+<li>最大上传大小：<code>0x1fb0000</code>（33226752 字节，对应 firmware 分区大小）。</li>
+<li>当前阶段只上传到 RAM，不擦除、不写入 Flash。</li>
+<li>上传成功后自动设置环境变量 <code>fileaddr</code> 和 <code>filesize</code>。</li>
+<li>2026-09-01 验证的 <code>build/u-boot-mt7621.bin</code> 大小为 185585 字节，小于 U-Boot 分区上限 192 KiB（196608 字节）。</li>
+</ul>
+<p>启动服务：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">=&gt; webflash</span><br><span class="line">Web recovery listening on http://192.168.31.66/</span><br><span class="line">Upload address: 0x83000000, maximum size: 0x1fb0000</span><br><span class="line">RAM upload only; Flash writes are disabled. Press Ctrl-C to stop.</span><br></pre></td></tr></table></figure>
+
+<p>只有执行 <code>webflash</code> 并停留在其轮询循环中，网页才可以访问；出现 <code>=&gt;</code> 提示符时表示网页服务没有运行。</p>
+<h1 id="2-网络连接与访问"><a href="#2-网络连接与访问" class="headerlink" title="2 网络连接与访问"></a>2 网络连接与访问</h1><p>通过现有路由器访问时：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">主路由器 LAN 口</span><br><span class="line">        │</span><br><span class="line">        └── 开发板 LAN1/LAN2/LAN3/LAN4</span><br></pre></td></tr></table></figure>
+
+<p>不要接开发板 WAN 口。OpenWrt 默认禁止从 WAN 访问 LuCI。</p>
+<p>电脑连接主路由器的普通 Wi-Fi，不能使用开启了客户端隔离的访客 Wi-Fi。电脑地址和开发板必须处于同一网段，例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">主路由器：192.168.31.1</span><br><span class="line">电脑：    192.168.31.40</span><br><span class="line">开发板：  192.168.31.66</span><br><span class="line">掩码：    255.255.255.0</span><br></pre></td></tr></table></figure>
+
+<p>浏览器必须使用 HTTP：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.31.66/</span><br></pre></td></tr></table></figure>
+
+<p>Windows 测试命令：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ping <span class="number">192.168</span>.<span class="number">31.66</span></span><br><span class="line"><span class="built_in">Test-NetConnection</span> <span class="number">192.168</span>.<span class="number">31.66</span> <span class="literal">-Port</span> <span class="number">80</span></span><br><span class="line">curl.exe <span class="literal">--noproxy</span> <span class="string">&quot;*&quot;</span> <span class="literal">-v</span> <span class="literal">--max-time</span> <span class="number">10</span> http://<span class="number">192.168</span>.<span class="number">31.66</span>/api/info</span><br><span class="line">curl.exe <span class="literal">--noproxy</span> <span class="string">&quot;*&quot;</span> <span class="literal">-v</span> <span class="literal">--max-time</span> <span class="number">10</span> http://<span class="number">192.168</span>.<span class="number">31.66</span>/</span><br></pre></td></tr></table></figure>
+
+<p>PowerShell 中应明确使用 <code>curl.exe</code>，避免调用 <code>curl</code> 对应的 <code>Invoke-WebRequest</code> 别名。</p>
+<h1 id="3-TCP-能连接但-HTTP-返回-0-字节的问题"><a href="#3-TCP-能连接但-HTTP-返回-0-字节的问题" class="headerlink" title="3 TCP 能连接但 HTTP 返回 0 字节的问题"></a>3 TCP 能连接但 HTTP 返回 0 字节的问题</h1><h2 id="3-1-现象"><a href="#3-1-现象" class="headerlink" title="3.1 现象"></a>3.1 现象</h2><ul>
+<li><code>ping</code> 正常，TTL 为 255。</li>
+<li><code>Test-NetConnection ... -Port 80</code> 返回 <code>TcpTestSucceeded : True</code>。</li>
+<li>TCP 三次握手成功，客户端能发出 GET 请求。</li>
+<li>HTTP 一直收到 0 字节，最终超时。</li>
+</ul>
+<h2 id="3-2-根因"><a href="#3-2-根因" class="headerlink" title="3.2 根因"></a>3.2 根因</h2><p>问题位于：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net/lwip/net-lwip.c</span><br></pre></td></tr></table></figure>
+
+<p>原来的 <code>net_lwip_tx()</code> 只把第一个 pbuf 的 <code>p-&gt;payload</code>、<code>p-&gt;len</code> 交给网卡驱动。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">p-&gt;len      = 当前第一个 pbuf 的长度</span><br><span class="line">p-&gt;tot_len  = 整条 pbuf 链的完整长度</span><br></pre></td></tr></table></figure>
+
+<p>TCP SYN&#x2F;ACK 通常只有一个 pbuf，所以握手能够成功。HTTP 响应包含响应头和正文，可能形成多个 pbuf；只发送 <code>p-&gt;len</code> 会截断数据帧，客户端因此丢弃响应并等待到超时。</p>
+<p>修复方法：如果存在 pbuf 链或首地址未对齐，先按 <code>p-&gt;tot_len</code> 把完整数据复制到一块连续、对齐的内存，再交给 U-Boot Ethernet 驱动发送。</p>
+<p>该修复属于 lwIP 底层发送修复，不只对 WebFlash 有效。</p>
+<h2 id="3-3-HTTP-响应状态机"><a href="#3-3-HTTP-响应状态机" class="headerlink" title="3.3 HTTP 响应状态机"></a>3.3 HTTP 响应状态机</h2><p><code>cmd/lwip/webflash.c</code> 同时完成了以下处理：</p>
+<ul>
+<li>注册 <code>tcp_sent()</code> 回调。</li>
+<li>响应进入发送队列后，不立即关闭 TCP。</li>
+<li>等客户端确认全部响应数据后再调用 <code>tcp_close()</code>。</li>
+<li><code>tcp_output()</code> 或 <code>tcp_close()</code> 遇到 <code>ERR_MEM</code> 时，通过 <code>tcp_poll()</code> 重试。</li>
+<li>串口打印连接、接收、请求、响应和确认信息。</li>
+</ul>
+<p>正常日志示例：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Web client connected: 192.168.31.40:57693</span><br><span class="line">Web received: 85 bytes</span><br><span class="line">Web request: GET /api/info HTTP/1.1</span><br><span class="line">Web response: 200 OK, 342 bytes queued</span><br><span class="line">Web acknowledged: 342 bytes, 0 remaining</span><br></pre></td></tr></table></figure>
+
+<p>浏览器请求 <code>/favicon.ico</code> 返回 <code>404 Not Found</code> 只是没有提供网页图标，不影响页面和上传功能。</p>
+<h1 id="4-上传镜像并从-RAM-启动-OpenWrt"><a href="#4-上传镜像并从-RAM-启动-OpenWrt" class="headerlink" title="4 上传镜像并从 RAM 启动 OpenWrt"></a>4 上传镜像并从 RAM 启动 OpenWrt</h1><p>用于 RAM 启动的镜像：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openwrt-ramips-mt7621-hilink_hlk-7621a-evb-initramfs-kernel.bin</span><br></pre></td></tr></table></figure>
+
+<p>本次验证的镜像大小为 8417175 字节。网页上传成功日志：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Web upload complete: 8417175 bytes at 0x83000000 (Flash unchanged)</span><br></pre></td></tr></table></figure>
+
+<p>上传完成后：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 串口按 Ctrl-C 退出 webflash，RAM 内容仍然保留</span><br><span class="line">=&gt; printenv fileaddr filesize</span><br><span class="line">=&gt; iminfo $&#123;fileaddr&#125;</span><br><span class="line">=&gt; bootm $&#123;fileaddr&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不要使用 <code>go</code>。<code>initramfs-kernel.bin</code> 包含内核和临时根文件系统，可以完全从 RAM 启动；复位后 RAM 系统消失，Flash 内容不变。</p>
+<p><code>squashfs-sysupgrade.bin</code> 用于写入 firmware 分区，不应当作完整的 RAM 系统直接运行。</p>
+<h1 id="5-U-Boot-与-OpenWrt-串口波特率"><a href="#5-U-Boot-与-OpenWrt-串口波特率" class="headerlink" title="5 U-Boot 与 OpenWrt 串口波特率"></a>5 U-Boot 与 OpenWrt 串口波特率</h1><p>当前配置：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">U-Boot：  115200 8N1</span><br><span class="line">OpenWrt： 57600 8N1</span><br></pre></td></tr></table></figure>
+
+<p>OpenWrt 的 <code>target/linux/ramips/dts/mt7621.dtsi</code> 默认包含：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">chosen</span> <span class="punctuation">&#123;</span></span><br><span class="line">	<span class="attr">bootargs</span> <span class="operator">=</span> <span class="string">&quot;console=ttyS0,57600&quot;</span><span class="punctuation">;</span></span><br><span class="line"><span class="punctuation">&#125;;</span></span><br></pre></td></tr></table></figure>
+
+<p>板级 DTS 引用了公共 <code>mt7621.dtsi</code>，但没有覆盖该属性，所以 Linux 初始化串口后会从 115200 切换到 57600，串口工具仍停在 115200 时就会显示乱码。</p>
+<p>临时方法：Linux 开始输出时，将串口工具切换到 57600 8N1、无流控。</p>
+<p>永久统一为 115200 时，应在板级文件：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openwrt-24.10.8/target/linux/ramips/dts/mt7621_hilink_hlk-7621a-evb.dts</span><br></pre></td></tr></table></figure>
+
+<p>的根节点中覆盖：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">chosen</span> <span class="punctuation">&#123;</span></span><br><span class="line">	<span class="attr">bootargs</span> <span class="operator">=</span> <span class="string">&quot;console=ttyS0,115200&quot;</span><span class="punctuation">;</span></span><br><span class="line"><span class="punctuation">&#125;;</span></span><br></pre></td></tr></table></figure>
+
+<p>不要修改公共 <code>mt7621.dtsi</code>，否则会影响其他 MT7621 设备。</p>
+<h1 id="6-OpenWrt-临时使用-192-168-31-66"><a href="#6-OpenWrt-临时使用-192-168-31-66" class="headerlink" title="6 OpenWrt 临时使用 192.168.31.66"></a>6 OpenWrt 临时使用 192.168.31.66</h1><p>当前 OpenWrt 默认 LAN 接口为 <code>br-lan</code>，默认地址为 <code>192.168.1.1/24</code>。BusyBox 精简版 <code>ip</code> 不支持 <code>ip -br addr</code>，使用：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ip addr show</span><br></pre></td></tr></table></figure>
+
+<p>在 initramfs 中临时增加地址：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ip addr add 192.168.31.66/24 dev br-lan</span><br><span class="line">ip <span class="built_in">link</span> <span class="built_in">set</span> br-lan up</span><br></pre></td></tr></table></figure>
+
+<p>开发板 LAN 接入已有主路由器时，必须停止开发板 DHCP，防止两个 DHCP 服务器同时工作：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/dnsmasq stop</span><br></pre></td></tr></table></figure>
+
+<p>需要 OpenWrt 本身访问外网时：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ip route replace default via 192.168.31.1 dev br-lan</span><br></pre></td></tr></table></figure>
+
+<p>LuCI 未响应时重启 uhttpd：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/uhttpd restart</span><br></pre></td></tr></table></figure>
+
+<p>访问地址：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.31.66/cgi-bin/luci</span><br></pre></td></tr></table></figure>
+
+<p><code>ip addr add</code>、停止 dnsmasq 和 initramfs 内的 UCI 修改在重启后都会消失。</p>
+<h1 id="7-正式系统持久设置-LAN-地址"><a href="#7-正式系统持久设置-LAN-地址" class="headerlink" title="7 正式系统持久设置 LAN 地址"></a>7 正式系统持久设置 LAN 地址</h1><p>正式将 OpenWrt 写入 Flash 后，使用 UCI 持久保存：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">uci <span class="built_in">set</span> network.lan.proto=<span class="string">&#x27;static&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.ipaddr=<span class="string">&#x27;192.168.31.66&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.netmask=<span class="string">&#x27;255.255.255.0&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.gateway=<span class="string">&#x27;192.168.31.1&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.dns=<span class="string">&#x27;192.168.31.1&#x27;</span></span><br><span class="line">uci commit network</span><br><span class="line"></span><br><span class="line">uci <span class="built_in">set</span> dhcp.lan.ignore=<span class="string">&#x27;1&#x27;</span></span><br><span class="line">uci commit dhcp</span><br><span class="line"></span><br><span class="line">/etc/init.d/network restart</span><br><span class="line">/etc/init.d/dnsmasq restart</span><br><span class="line">/etc/init.d/uhttpd restart</span><br></pre></td></tr></table></figure>
+
+<p><code>192.168.31.66</code> 必须确认没有被主路由器 DHCP 分配给其他设备。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/01/hlk_7621_kit/webflash/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&text=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&is_video=false&description=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录&body=Check out this article: http://example.com/2026/09/01/hlk_7621_kit/webflash/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&title=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/01/hlk_7621_kit/webflash/&name=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/01/hlk_7621_kit/webflash/&t=HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>HLK-7621 U-Boot(2026.07) 启动方式分析 | YJRQZ777</title><meta name="author" content="yjrqz777"><meta name="copyright" content="yjrqz777"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="分析 HLK-7621 的 U-Boot 配置、启动命令、Flash 读取流程与 OpenWrt RAM 启动方式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621 U-Boot(2026.07) 启动方式分析">
+<meta property="og:url" content="http://example.com/2026/08/27/hlk_7621_kit/boot-method/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="分析 HLK-7621 的 U-Boot 配置、启动命令、Flash 读取流程与 OpenWrt RAM 启动方式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/openwrt/openwrt_text_blue_and_dark_blue.svg">
+<meta property="article:published_time" content="2026-08-27T12:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-01T06:55:09.286Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta property="article:tag" content="Boot">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/openwrt/openwrt_text_blue_and_dark_blue.svg"><link rel="shortcut icon" href="/img/star.ico"><link rel="canonical" href="http://example.com/2026/08/27/hlk_7621_kit/boot-method/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'HLK-7621 U-Boot(2026.07) 启动方式分析',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-09-01 14:55:09'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="/css/font.css"><link rel="stylesheet" href="/css/custom.css"><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">31</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/openwrt/openwrt_logo_text_horizontal_blue_and_dark_blue.svg')"><nav id="nav"><span id="blog-info"><a href="/" title="YJRQZ777"><img class="site-icon" src="/img/tree.ico"/><span class="site-name">YJRQZ777</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">HLK-7621 U-Boot(2026.07) 启动方式分析</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-27T12:30:00.000Z" title="发表于 2026-08-27 20:30:00">2026-08-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-09-01T06:55:09.286Z" title="更新于 2026-09-01 14:55:09">2026-09-01</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/OpenWrt/">OpenWrt</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="硬件与镜像现状"><a href="#硬件与镜像现状" class="headerlink" title="硬件与镜像现状"></a>硬件与镜像现状</h1><ul>
+<li>SoC: MediaTek MT7621 (MIPS, 小端 mipsel 24Kc)</li>
+<li>存储: SPI NOR Flash</li>
+<li>U-Boot: v2026.07，MTK 官方 mt7621_rfb 平台，构建产物在 <code>u-boot-2026.07/build/</code></li>
+<li>烧到 0x0 的完整固件: <code>build/u-boot-mt7621.bin</code> (约 180KB)</li>
+</ul>
+<h1 id="U-Boot-关键能力（据-build-x2F-config）"><a href="#U-Boot-关键能力（据-build-x2F-config）" class="headerlink" title="U-Boot 关键能力（据 build&#x2F;.config）"></a>U-Boot 关键能力（据 build&#x2F;.config）</h1><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CONFIG_LEGACY_IMAGE_FORMAT</td>
+<td>y</td>
+<td>支持传统 uImage (bootm)</td>
+</tr>
+<tr>
+<td>CONFIG_FIT</td>
+<td>n</td>
+<td>FIT 已关</td>
+</tr>
+<tr>
+<td>CONFIG_BOOTSTD &#x2F; BOOTMETH_*</td>
+<td>n</td>
+<td>标准启动流程全关</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_BOOTM</td>
+<td>y</td>
+<td><code>bootm</code> 可用</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_BOOTZ</td>
+<td>n</td>
+<td>无 <code>bootz</code></td>
+</tr>
+<tr>
+<td>CONFIG_CMD_SF &#x2F; SPI_FLASH</td>
+<td>y</td>
+<td><code>sf probe/read/write</code> 可用</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_TFTPBOOT &#x2F; NET</td>
+<td>y</td>
+<td>TFTP 网络启动可用</td>
+</tr>
+<tr>
+<td>CONFIG_ENV_IS_IN_SPI_FLASH</td>
+<td>y</td>
+<td>env 存在 SPI 0x30000</td>
+</tr>
+<tr>
+<td>CONFIG_SYS_LOAD_ADDR</td>
+<td>0x83000000</td>
+<td>默认加载地址</td>
+</tr>
+<tr>
+<td>CONFIG_BOOTDELAY</td>
+<td>10</td>
+<td>倒计时 10 秒</td>
+</tr>
+<tr>
+<td>CONFIG_USE_BOOTCOMMAND</td>
+<td>n</td>
+<td>未预置 bootcmd，需自己 setenv</td>
+</tr>
+</tbody></table>
+<p>结论：<strong>这套 U-Boot 只认“传统 uImage”，非常适合 OpenWrt ramips&#x2F;mt7621 的 legacy uImage 镜像</strong>。</p>
+<h1 id="OpenWrt-镜像（HLK-7621A-EVB-24-10-8-kernel-6-6-144）"><a href="#OpenWrt-镜像（HLK-7621A-EVB-24-10-8-kernel-6-6-144）" class="headerlink" title="OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）"></a>OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）</h1><p><code>bin/targets/ramips/mt7621/</code> 下两个都是 <strong>u-boot legacy uImage</strong>（magic 0x27051956），<br>Load&#x2F;Entry &#x3D; 0x80001000，OS&#x3D;Linux MIPS，未压缩，DTB 已内嵌：</p>
+<ol>
+<li><code>openwrt-...-initramfs-kernel.bin</code> (约 8.4MB)<ul>
+<li>内核 + initramfs 根文件系统打包成单个 uImage</li>
+<li>用于“直接载入内存启动”，不需要根文件系统分区</li>
+</ul>
+</li>
+<li><code>openwrt-...-squashfs-sysupgrade.bin</code> (约 8.7MB)<ul>
+<li>开头是同样的内核 uImage（约 3.3MB），后面追加 squashfs rootfs + padding</li>
+<li>用于整体烧进 <code>firmware</code> 分区</li>
+</ul>
+</li>
+</ol>
+<h1 id="目标-Flash-分区布局（来自内核-DTS）"><a href="#目标-Flash-分区布局（来自内核-DTS）" class="headerlink" title="目标 Flash 分区布局（来自内核 DTS）"></a>目标 Flash 分区布局（来自内核 DTS）</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x000000  u-boot      (0x0    ~ 0x30000)  192K  ← 烧 u-boot-mt7621.bin</span><br><span class="line">0x030000  u-boot-env  (0x30000 ~ 0x40000)  64K   ← U-Boot env</span><br><span class="line">0x040000  factory     (0x40000 ~ 0x50000)  64K   ← 出厂信息/MAC</span><br><span class="line">0x050000  firmware    (0x50000 ~ 0x2000000) 31.5M ← 内核+rootfs (denx,uimage)</span><br></pre></td></tr></table></figure>
+
+<p>u-boot-mt7621.bin 约 180KB &lt; 192KB，可完整装入 u-boot 分区，不越界到 env。</p>
+<h1 id="启动方式对比"><a href="#启动方式对比" class="headerlink" title="启动方式对比"></a>启动方式对比</h1><h2 id="方式-A-—-TFTP-载入内存启动（initramfs-镜像）⭐-推荐"><a href="#方式-A-—-TFTP-载入内存启动（initramfs-镜像）⭐-推荐" class="headerlink" title="方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐"></a>方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐</h2><p>最适合：首次启动 &#x2F; 调试 &#x2F; 恢复 &#x2F; 测试。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">setenv ipaddr 192.168.1.1</span><br><span class="line">setenv serverip 192.168.1.100</span><br><span class="line">tftpboot 0x82000000 openwrt-...-initramfs-kernel.bin</span><br><span class="line">bootm 0x82000000</span><br></pre></td></tr></table></figure>
+<p>bootm 会自动按 uImage 头部把内核搬到 0x80001000 并跳转。<br>优点：自包含（内核+rootfs 都在内存），无需根文件系统分区、无需复杂 bootargs。</p>
+<h2 id="方式-B-—-烧进-SPI-NOR-从-Flash-启动（sysupgrade-镜像）"><a href="#方式-B-—-烧进-SPI-NOR-从-Flash-启动（sysupgrade-镜像）" class="headerlink" title="方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）"></a>方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）</h2><p>最适合：永久&#x2F;正式安装到板子。<br>先把 sysupgrade.bin 整体写进 firmware 分区 (0x50000)，再用 U-Boot 读取并 bootm：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># 首次烧写（在 U-Boot 里）</span><br><span class="line">sf probe</span><br><span class="line">sf erase 0x50000 0x1fb0000</span><br><span class="line">tftpboot 0x82000000 openwrt-...-squashfs-sysupgrade.bin</span><br><span class="line">sf write 0x82000000 0x50000 $&#123;filesize&#125;</span><br><span class="line"></span><br><span class="line"># 之后每次启动</span><br><span class="line">sf probe</span><br><span class="line">sf read 0x82000000 0x50000 0x400000</span><br><span class="line">bootm 0x82000000</span><br></pre></td></tr></table></figure>
+<p>内核会自动根据 DTS 的 <code>firmware</code>(denx,uimage) 分区定位并挂载 squashfs rootfs。</p>
+<h1 id="结论：最适合哪种？"><a href="#结论：最适合哪种？" class="headerlink" title="结论：最适合哪种？"></a>结论：最适合哪种？</h1><ul>
+<li>你这套 U-Boot 是 <strong>legacy-uImage 专用</strong>，而 OpenWrt 这个板子的两个镜像正好也是 <strong>legacy uImage</strong>，完全匹配、无需改镜像。</li>
+<li><strong>日常跑&#x2F;调试用 initramfs-kernel.bin 走 TFTP（方式 A）最省事</strong>；</li>
+<li><strong>定稿后把 squashfs-sysupgrade.bin 烧进 0x50000 分区（方式 B）做正式系统</strong>。</li>
+</ul>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MT7621/">MT7621</a><a class="post-meta__tags" href="/tags/OpenWrt/">OpenWrt</a><a class="post-meta__tags" href="/tags/U-Boot/">U-Boot</a><a class="post-meta__tags" href="/tags/Boot/">Boot</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2026/09/01/hlk_7621_kit/webflash/" title="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录</div></div></a></div><div class="next-post pull-right"><a href="/2026/08/26/hlk_7621_kit/knowledge/" title="HLK-7621-uboot(2026.07)笔记-knowledge"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">HLK-7621-uboot(2026.07)笔记-knowledge</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2026/08/24/hlk_7621_kit/ascii/" title="HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-24</div><div class="title">HLK-7621 U-Boot(2026.07) ASCII 启动画面记录</div></div></a></div><div><a href="/2026/08/24/hlk_7621_kit/flash/" title="HLK-7621 U-Boot(2026.07) Flash 布局记录"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-24</div><div class="title">HLK-7621 U-Boot(2026.07) Flash 布局记录</div></div></a></div><div><a href="/2026/08/26/hlk_7621_kit/knowledge/" title="HLK-7621-uboot(2026.07)笔记-knowledge"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-26</div><div class="title">HLK-7621-uboot(2026.07)笔记-knowledge</div></div></a></div><div><a href="/2026/08/23/hlk_7621_kit/spl_uart/" title="HLK-7621-uboot(2026.07)笔记-05"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-23</div><div class="title">HLK-7621-uboot(2026.07)笔记-05</div></div></a></div><div><a href="/2026/08/10/hlk_7621_kit/openwrt-mt7621-build-and-tftp-recovery/" title="HLK-7621-ALL-KIT-V2.4 OpenWrt 编译、TFTP 救援与固件恢复记录"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-10</div><div class="title">HLK-7621-ALL-KIT-V2.4 OpenWrt 编译、TFTP 救援与固件恢复记录</div></div></a></div><div><a href="/2026/08/23/hlk_7621_kit/spl_init/" title="HLK-7621-uboot(2026.07)笔记-04"><img class="cover" src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-23</div><div class="title">HLK-7621-uboot(2026.07)笔记-04</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">yjrqz777</div><div class="author-info__description">杂学家</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">31</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">49</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/yjrqz777"><i class="fab fa-github"></i><span>Find me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/yjrqz777" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yjrqz77@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">什么也没......</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E4%B8%8E%E9%95%9C%E5%83%8F%E7%8E%B0%E7%8A%B6"><span class="toc-number">1.</span> <span class="toc-text">硬件与镜像现状</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#U-Boot-%E5%85%B3%E9%94%AE%E8%83%BD%E5%8A%9B%EF%BC%88%E6%8D%AE-build-x2F-config%EF%BC%89"><span class="toc-number">2.</span> <span class="toc-text">U-Boot 关键能力（据 build&#x2F;.config）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#OpenWrt-%E9%95%9C%E5%83%8F%EF%BC%88HLK-7621A-EVB-24-10-8-kernel-6-6-144%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87-Flash-%E5%88%86%E5%8C%BA%E5%B8%83%E5%B1%80%EF%BC%88%E6%9D%A5%E8%87%AA%E5%86%85%E6%A0%B8-DTS%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">目标 Flash 分区布局（来自内核 DTS）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F%E5%AF%B9%E6%AF%94"><span class="toc-number">5.</span> <span class="toc-text">启动方式对比</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-A-%E2%80%94-TFTP-%E8%BD%BD%E5%85%A5%E5%86%85%E5%AD%98%E5%90%AF%E5%8A%A8%EF%BC%88initramfs-%E9%95%9C%E5%83%8F%EF%BC%89%E2%AD%90-%E6%8E%A8%E8%8D%90"><span class="toc-number">5.1.</span> <span class="toc-text">方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-B-%E2%80%94-%E7%83%A7%E8%BF%9B-SPI-NOR-%E4%BB%8E-Flash-%E5%90%AF%E5%8A%A8%EF%BC%88sysupgrade-%E9%95%9C%E5%83%8F%EF%BC%89"><span class="toc-number">5.2.</span> <span class="toc-text">方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%EF%BC%9A%E6%9C%80%E9%80%82%E5%90%88%E5%93%AA%E7%A7%8D%EF%BC%9F"><span class="toc-number">6.</span> <span class="toc-text">结论：最适合哪种？</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/09/01/hlk_7621_kit/webflash/" title="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"/></a><div class="content"><a class="title" href="/2026/09/01/hlk_7621_kit/webflash/" title="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录">HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录</a><time datetime="2026-09-01T05:00:00.000Z" title="发表于 2026-09-01 13:00:00">2026-09-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/27/hlk_7621_kit/boot-method/" title="HLK-7621 U-Boot(2026.07) 启动方式分析"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) 启动方式分析"/></a><div class="content"><a class="title" href="/2026/08/27/hlk_7621_kit/boot-method/" title="HLK-7621 U-Boot(2026.07) 启动方式分析">HLK-7621 U-Boot(2026.07) 启动方式分析</a><time datetime="2026-08-27T12:30:00.000Z" title="发表于 2026-08-27 20:30:00">2026-08-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/26/hlk_7621_kit/knowledge/" title="HLK-7621-uboot(2026.07)笔记-knowledge"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621-uboot(2026.07)笔记-knowledge"/></a><div class="content"><a class="title" href="/2026/08/26/hlk_7621_kit/knowledge/" title="HLK-7621-uboot(2026.07)笔记-knowledge">HLK-7621-uboot(2026.07)笔记-knowledge</a><time datetime="2026-08-26T12:30:00.000Z" title="发表于 2026-08-26 20:30:00">2026-08-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/24/hlk_7621_kit/ascii/" title="HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"/></a><div class="content"><a class="title" href="/2026/08/24/hlk_7621_kit/ascii/" title="HLK-7621 U-Boot(2026.07) ASCII 启动画面记录">HLK-7621 U-Boot(2026.07) ASCII 启动画面记录</a><time datetime="2026-08-24T14:00:00.000Z" title="发表于 2026-08-24 22:00:00">2026-08-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/24/hlk_7621_kit/flash/" title="HLK-7621 U-Boot(2026.07) Flash 布局记录"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) Flash 布局记录"/></a><div class="content"><a class="title" href="/2026/08/24/hlk_7621_kit/flash/" title="HLK-7621 U-Boot(2026.07) Flash 布局记录">HLK-7621 U-Boot(2026.07) Flash 布局记录</a><time datetime="2026-08-24T11:30:00.000Z" title="发表于 2026-08-24 19:30:00">2026-08-24</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2026 By yjrqz777</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const $mermaidWrap = document.querySelectorAll('#article-container .mermaid-wrap')
+  if ($mermaidWrap.length) {
+    window.runMermaid = () => {
+      window.loadMermaid = true
+      const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+      Array.from($mermaidWrap).forEach((item, index) => {
+        const mermaidSrc = item.firstElementChild
+        const mermaidThemeConfig = '%%{init:{ \'theme\':\'' + theme + '\'}}%%\n'
+        const mermaidID = 'mermaid-' + index
+        const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+        mermaid.mermaidAPI.render(mermaidID, mermaidDefinition, (svgCode) => {
+          mermaidSrc.insertAdjacentHTML('afterend', svgCode)
+        })
+      })
+    }
+
+    const loadMermaid = () => {
+      window.loadMermaid ? runMermaid() : getScript('https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js').then(runMermaid)
+    }
+
+    window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+  }
+})()</script></div><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-heart.min.js" async="async" mobile="true"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body></html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="记录 HLK-7621 在 U-Boot 各启动阶段输出 ASCII 启动画面的代码片段与显示效果。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621 U-Boot(2026.07) ASCII 启动画面记录">
+<meta property="og:url" content="http://example.com/2026/08/24/hlk_7621_kit/ascii/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="记录 HLK-7621 在 U-Boot 各启动阶段输出 ASCII 启动画面的代码片段与显示效果。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-24T14:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-01T06:55:09.286Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta property="article:tag" content="ASCII">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>HLK-7621 U-Boot(2026.07) ASCII 启动画面记录</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/08/26/hlk_7621_kit/knowledge/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/08/24/hlk_7621_kit/flash/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/24/hlk_7621_kit/ascii/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&text=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&is_video=false&description=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录&body=Check out this article: http://example.com/2026/08/24/hlk_7621_kit/ascii/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&name=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/24/hlk_7621_kit/ascii/&t=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ifdef-CONFIG-TPL-BUILD"><span class="toc-number">1.</span> <span class="toc-text">ifdef CONFIG_TPL_BUILD</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#elif-defined-CONFIG-VPL-BUILD"><span class="toc-number">2.</span> <span class="toc-text">elif defined(CONFIG_VPL_BUILD)</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#elif-defined-CONFIG-SPL-BUILD"><span class="toc-number">3.</span> <span class="toc-text">elif defined(CONFIG_SPL_BUILD)</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#endif"><span class="toc-number">4.</span> <span class="toc-text">endif</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        HLK-7621 U-Boot(2026.07) ASCII 启动画面记录
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-08-24T14:00:00.000Z" class="dt-published" itemprop="datePublished">2026-08-24</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/OpenWrt/">OpenWrt</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/ASCII/" rel="tag">ASCII</a>, <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/OpenWrt/" rel="tag">OpenWrt</a>, <a class="p-category" href="/cactus-theme/tags/U-Boot/" rel="tag">U-Boot</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <p>#ifdef CONFIG_XPL_BUILD</p>
+<h1 id="ifdef-CONFIG-TPL-BUILD"><a href="#ifdef-CONFIG-TPL-BUILD" class="headerlink" title="ifdef CONFIG_TPL_BUILD"></a>ifdef CONFIG_TPL_BUILD</h1><pre><code>puts(&quot;[0;90;40m▐[0;90;44m▀▀▀▀▀▀▀[0;90;40m█▐[0;90;44m▀▀▀▀[0;90;40m█[0;37;40m   [0;90;40m█[0;90;44m▀▀▀▀▀▀▀▀[0;90;40m▄[0;37;40m    [0;90;40m█[0;90;44m▀▀[0;90;40m█[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;36;40m█[0;36;44m▄▄▄[0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌█[0;36;44m▄▄▄▄[0;36;40m▌[0;37;40m  [0;36;40m▐[0;36;44m▌  ▄▄▄▄▄[0;34;40m█[0;36;44m [0;36;40m█[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;37;40m    [0;96;40m█[0;96;44m  [0;96;40m█[0;37;40m         [0;96;40m█[0;96;44m  ▐[0;96;40m▌▄[0;97;40m▄▄[0;96;44m▀ ▄[0;96;40m▀[0;37;40m  [0;96;40m█[0;96;44m  [0;96;40m█[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m        [0;97;40m▐[0;97;44m▌ ▐[0;97;40m█[0;37;40m▐[0;96;44m▄[0;97;44m▄[0;96;44m▄▄[0;96;40m▀[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m   [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m         [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m          [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m     [0m\n&quot;);
+puts(&quot;[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m        [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m         [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌█[0;36;44m▀▀▀[0;36;40m█[0m\n&quot;);
+puts(&quot;[0;37;40m  [0;90;40m█[0;90;44m▄▄[0;90;40m█[0;37;40m         [0;90;40m█[0;90;44m▄▄[0;90;40m█[0;37;40m          [0;90;44m█▄▄█[0;90;40m▐[0;90;44m▄▄▄▄[0;90;40m▌[0m\n&quot;);
+</code></pre>
+<h1 id="elif-defined-CONFIG-VPL-BUILD"><a href="#elif-defined-CONFIG-VPL-BUILD" class="headerlink" title="elif defined(CONFIG_VPL_BUILD)"></a>elif defined(CONFIG_VPL_BUILD)</h1><pre><code>puts(&quot;[0;37;40m   [0;90;40m█[0;90;44m▀▀[0;90;40m█[0;37;40m    [0;90;40m█[0;90;44m▀▀[0;90;40m█[0;37;40m   [0;90;40m█[0;90;44m▀▀▀▀▀▀▀▀[0;90;40m▄[0;37;40m    [0;90;40m█[0;90;44m▀▀[0;90;40m█[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m   [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m  [0;36;40m▐[0;36;44m▌  ▄▄▄▄▄[0;34;40m█[0;36;44m [0;36;40m█[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;37;40m  [0;96;40m█[0;96;44m  █[0;37;40m    [0;96;40m█[0;96;44m  [0;96;40m█[0;37;40m   [0;96;40m█[0;96;44m  ▐[0;96;40m▌▄[0;97;40m▄▄[0;96;44m▀ ▄[0;96;40m▀[0;37;40m  [0;96;40m█[0;96;44m  [0;96;40m█[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m  [0;97;40m▐[0;97;44m▌ ▐[0;97;40m█[0;37;40m▐[0;96;44m▄[0;97;44m▄[0;96;44m▄▄[0;96;40m▀[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m   [0;96;40m▄[0;96;44m▀[0;34;40m█[0;96;44m▐[0;96;40m▌[0;37;40m   [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m          [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m     [0m\n&quot;);
+puts(&quot;[0;37;40m [0;90;46m▄[0;36;44m [0;34;40m██[0;36;44m▀▀▀[0;34;40m██[0;36;40m▄▀[0;37;40m   [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m         [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌█[0;36;44m▀▀▀[0;36;40m█[0m\n&quot;);
+puts(&quot;[0;37;40m  [0;90;40m▀[0;90;44m▄▄▄▄▄▄[0;90;40m▀[0;37;40m     [0;90;40m█[0;90;44m▄▄[0;90;40m█[0;37;40m          [0;90;44m█▄▄█[0;90;40m▐[0;90;44m▄▄▄▄[0;90;40m▌[0m\n&quot;);
+</code></pre>
+<h1 id="elif-defined-CONFIG-SPL-BUILD"><a href="#elif-defined-CONFIG-SPL-BUILD" class="headerlink" title="elif defined(CONFIG_SPL_BUILD)"></a>elif defined(CONFIG_SPL_BUILD)</h1><pre><code>puts(&quot;[0;37;40m     [0;90;40m▄[0;90;44m▀▀▀▀▀▀▀[0;90;40m█[0;37;40m   [0;90;40m█[0;90;44m▀▀▀▀▀▀▀▀[0;90;40m▄[0;37;40m    [0;90;40m█[0;90;44m▀▀[0;90;40m█[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;37;40m    [0;36;40m█[0;36;44m   ▄▄▄▄▄[0;36;40m▌[0;37;40m  [0;36;40m▐[0;36;44m▌  ▄▄▄▄▄[0;34;40m█[0;36;44m [0;36;40m█[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m   [0m\n&quot;);
+puts(&quot;[0;37;40m    [0;96;40m█[0;96;44m   ▀[0;96;40m▄[0;37;40m      [0;96;40m█[0;96;44m  ▐[0;96;40m▌▄[0;97;40m▄▄[0;96;44m▀ ▄[0;96;40m▀[0;37;40m  [0;96;40m█[0;96;44m  [0;96;40m█[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m     [0;97;40m▀[0;97;44m▄   ▀[0;97;40m▄[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m█[0;37;40m▐[0;96;44m▄[0;97;44m▄[0;96;44m▄▄[0;96;40m▀[0;37;40m   [0;97;40m▐[0;97;44m▌ ▐[0;97;40m▌[0;37;40m    [0m\n&quot;);
+puts(&quot;[0;37;40m       [0;96;40m█[0;34;40m███[0;96;40m█[0;37;40m   [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m          [0;96;40m█[0;34;40m██[0;96;40m█[0;37;40m     [0m\n&quot;);
+puts(&quot;[0;37;40m [0;36;40m█[0;36;44m▀▀▀▀▀   ▄[0;36;40m▀[0;37;40m  [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌[0;37;40m         [0;36;40m▐[0;36;44m▌ ▐[0;36;40m▌█[0;36;44m▀▀▀[0;36;40m█[0m\n&quot;);
+puts(&quot;[0;90;40m▐[0;90;44m▄▄▄▄▄▄▄▄[0;90;40m▀[0;37;40m    [0;90;40m█[0;90;44m▄▄[0;90;40m█[0;37;40m          [0;90;44m█▄▄█[0;90;40m▐[0;90;44m▄▄▄▄[0;90;40m▌[0m\n&quot;);
+</code></pre>
+<h1 id="endif"><a href="#endif" class="headerlink" title="endif"></a>endif</h1><p>#else<br>    puts(“[0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m       [0;37;40m [0;34;40m▐[0;94;40m█████▄[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;34;40m▐[0;94;40m██████[0m\n”);<br>    puts(“[0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m       [0;37;40m [0;34;40m▐[0;94;40m██  [0;34;40m▐[0;94;40m█[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;94;40m  [0;34;40m▐[0;94;40m██[0;34;40m  [0m\n”);<br>    puts(“[0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;94;40m  [0;34;40m▐[0;94;40m██[0;34;40m  [0m\n”);<br>    puts(“[0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m         [0;34;40m▐[0;94;40m██  [0;34;40m▐[0;94;40m█[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;34;40m▐[0;94;40m██ [0;34;40m▐[0;94;40m██[0;37;40m [0;94;40m  [0;34;40m▐[0;94;40m██[0;34;40m  [0m\n”);<br>    puts(“[0;34;40m▐[0;94;40m██████[0;37;40m         [0;34;40m▐[0;94;40m█████▀[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;34;40m▐[0;94;40m██████[0;37;40m [0;94;40m  [0;34;40m▐[0;94;40m██[0;34;40m  [0m\n”);<br>#endif</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ifdef-CONFIG-TPL-BUILD"><span class="toc-number">1.</span> <span class="toc-text">ifdef CONFIG_TPL_BUILD</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#elif-defined-CONFIG-VPL-BUILD"><span class="toc-number">2.</span> <span class="toc-text">elif defined(CONFIG_VPL_BUILD)</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#elif-defined-CONFIG-SPL-BUILD"><span class="toc-number">3.</span> <span class="toc-text">elif defined(CONFIG_SPL_BUILD)</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#endif"><span class="toc-number">4.</span> <span class="toc-text">endif</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/24/hlk_7621_kit/ascii/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&text=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&is_video=false&description=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录&body=Check out this article: http://example.com/2026/08/24/hlk_7621_kit/ascii/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&title=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/24/hlk_7621_kit/ascii/&name=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/24/hlk_7621_kit/ascii/&t=HLK-7621 U-Boot(2026.07) ASCII 启动画面记录"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

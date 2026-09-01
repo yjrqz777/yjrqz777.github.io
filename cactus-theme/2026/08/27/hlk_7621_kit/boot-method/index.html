@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="分析 HLK-7621 的 U-Boot 配置、启动命令、Flash 读取流程与 OpenWrt RAM 启动方式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621 U-Boot(2026.07) 启动方式分析">
+<meta property="og:url" content="http://example.com/2026/08/27/hlk_7621_kit/boot-method/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="分析 HLK-7621 的 U-Boot 配置、启动命令、Flash 读取流程与 OpenWrt RAM 启动方式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-27T12:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-01T06:55:09.286Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta property="article:tag" content="Boot">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>HLK-7621 U-Boot(2026.07) 启动方式分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/09/01/hlk_7621_kit/webflash/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/08/26/hlk_7621_kit/knowledge/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/27/hlk_7621_kit/boot-method/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&text=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&is_video=false&description=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) 启动方式分析&body=Check out this article: http://example.com/2026/08/27/hlk_7621_kit/boot-method/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&name=HLK-7621 U-Boot(2026.07) 启动方式分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&t=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E4%B8%8E%E9%95%9C%E5%83%8F%E7%8E%B0%E7%8A%B6"><span class="toc-number">1.</span> <span class="toc-text">硬件与镜像现状</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#U-Boot-%E5%85%B3%E9%94%AE%E8%83%BD%E5%8A%9B%EF%BC%88%E6%8D%AE-build-x2F-config%EF%BC%89"><span class="toc-number">2.</span> <span class="toc-text">U-Boot 关键能力（据 build&#x2F;.config）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#OpenWrt-%E9%95%9C%E5%83%8F%EF%BC%88HLK-7621A-EVB-24-10-8-kernel-6-6-144%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87-Flash-%E5%88%86%E5%8C%BA%E5%B8%83%E5%B1%80%EF%BC%88%E6%9D%A5%E8%87%AA%E5%86%85%E6%A0%B8-DTS%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">目标 Flash 分区布局（来自内核 DTS）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F%E5%AF%B9%E6%AF%94"><span class="toc-number">5.</span> <span class="toc-text">启动方式对比</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-A-%E2%80%94-TFTP-%E8%BD%BD%E5%85%A5%E5%86%85%E5%AD%98%E5%90%AF%E5%8A%A8%EF%BC%88initramfs-%E9%95%9C%E5%83%8F%EF%BC%89%E2%AD%90-%E6%8E%A8%E8%8D%90"><span class="toc-number">5.1.</span> <span class="toc-text">方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-B-%E2%80%94-%E7%83%A7%E8%BF%9B-SPI-NOR-%E4%BB%8E-Flash-%E5%90%AF%E5%8A%A8%EF%BC%88sysupgrade-%E9%95%9C%E5%83%8F%EF%BC%89"><span class="toc-number">5.2.</span> <span class="toc-text">方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%EF%BC%9A%E6%9C%80%E9%80%82%E5%90%88%E5%93%AA%E7%A7%8D%EF%BC%9F"><span class="toc-number">6.</span> <span class="toc-text">结论：最适合哪种？</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        HLK-7621 U-Boot(2026.07) 启动方式分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-08-27T12:30:00.000Z" class="dt-published" itemprop="datePublished">2026-08-27</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/OpenWrt/">OpenWrt</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Boot/" rel="tag">Boot</a>, <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/OpenWrt/" rel="tag">OpenWrt</a>, <a class="p-category" href="/cactus-theme/tags/U-Boot/" rel="tag">U-Boot</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="硬件与镜像现状"><a href="#硬件与镜像现状" class="headerlink" title="硬件与镜像现状"></a>硬件与镜像现状</h1><ul>
+<li>SoC: MediaTek MT7621 (MIPS, 小端 mipsel 24Kc)</li>
+<li>存储: SPI NOR Flash</li>
+<li>U-Boot: v2026.07，MTK 官方 mt7621_rfb 平台，构建产物在 <code>u-boot-2026.07/build/</code></li>
+<li>烧到 0x0 的完整固件: <code>build/u-boot-mt7621.bin</code> (约 180KB)</li>
+</ul>
+<h1 id="U-Boot-关键能力（据-build-x2F-config）"><a href="#U-Boot-关键能力（据-build-x2F-config）" class="headerlink" title="U-Boot 关键能力（据 build&#x2F;.config）"></a>U-Boot 关键能力（据 build&#x2F;.config）</h1><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CONFIG_LEGACY_IMAGE_FORMAT</td>
+<td>y</td>
+<td>支持传统 uImage (bootm)</td>
+</tr>
+<tr>
+<td>CONFIG_FIT</td>
+<td>n</td>
+<td>FIT 已关</td>
+</tr>
+<tr>
+<td>CONFIG_BOOTSTD &#x2F; BOOTMETH_*</td>
+<td>n</td>
+<td>标准启动流程全关</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_BOOTM</td>
+<td>y</td>
+<td><code>bootm</code> 可用</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_BOOTZ</td>
+<td>n</td>
+<td>无 <code>bootz</code></td>
+</tr>
+<tr>
+<td>CONFIG_CMD_SF &#x2F; SPI_FLASH</td>
+<td>y</td>
+<td><code>sf probe/read/write</code> 可用</td>
+</tr>
+<tr>
+<td>CONFIG_CMD_TFTPBOOT &#x2F; NET</td>
+<td>y</td>
+<td>TFTP 网络启动可用</td>
+</tr>
+<tr>
+<td>CONFIG_ENV_IS_IN_SPI_FLASH</td>
+<td>y</td>
+<td>env 存在 SPI 0x30000</td>
+</tr>
+<tr>
+<td>CONFIG_SYS_LOAD_ADDR</td>
+<td>0x83000000</td>
+<td>默认加载地址</td>
+</tr>
+<tr>
+<td>CONFIG_BOOTDELAY</td>
+<td>10</td>
+<td>倒计时 10 秒</td>
+</tr>
+<tr>
+<td>CONFIG_USE_BOOTCOMMAND</td>
+<td>n</td>
+<td>未预置 bootcmd，需自己 setenv</td>
+</tr>
+</tbody></table>
+<p>结论：<strong>这套 U-Boot 只认“传统 uImage”，非常适合 OpenWrt ramips&#x2F;mt7621 的 legacy uImage 镜像</strong>。</p>
+<h1 id="OpenWrt-镜像（HLK-7621A-EVB-24-10-8-kernel-6-6-144）"><a href="#OpenWrt-镜像（HLK-7621A-EVB-24-10-8-kernel-6-6-144）" class="headerlink" title="OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）"></a>OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）</h1><p><code>bin/targets/ramips/mt7621/</code> 下两个都是 <strong>u-boot legacy uImage</strong>（magic 0x27051956），<br>Load&#x2F;Entry &#x3D; 0x80001000，OS&#x3D;Linux MIPS，未压缩，DTB 已内嵌：</p>
+<ol>
+<li><code>openwrt-...-initramfs-kernel.bin</code> (约 8.4MB)<ul>
+<li>内核 + initramfs 根文件系统打包成单个 uImage</li>
+<li>用于“直接载入内存启动”，不需要根文件系统分区</li>
+</ul>
+</li>
+<li><code>openwrt-...-squashfs-sysupgrade.bin</code> (约 8.7MB)<ul>
+<li>开头是同样的内核 uImage（约 3.3MB），后面追加 squashfs rootfs + padding</li>
+<li>用于整体烧进 <code>firmware</code> 分区</li>
+</ul>
+</li>
+</ol>
+<h1 id="目标-Flash-分区布局（来自内核-DTS）"><a href="#目标-Flash-分区布局（来自内核-DTS）" class="headerlink" title="目标 Flash 分区布局（来自内核 DTS）"></a>目标 Flash 分区布局（来自内核 DTS）</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x000000  u-boot      (0x0    ~ 0x30000)  192K  ← 烧 u-boot-mt7621.bin</span><br><span class="line">0x030000  u-boot-env  (0x30000 ~ 0x40000)  64K   ← U-Boot env</span><br><span class="line">0x040000  factory     (0x40000 ~ 0x50000)  64K   ← 出厂信息/MAC</span><br><span class="line">0x050000  firmware    (0x50000 ~ 0x2000000) 31.5M ← 内核+rootfs (denx,uimage)</span><br></pre></td></tr></table></figure>
+
+<p>u-boot-mt7621.bin 约 180KB &lt; 192KB，可完整装入 u-boot 分区，不越界到 env。</p>
+<h1 id="启动方式对比"><a href="#启动方式对比" class="headerlink" title="启动方式对比"></a>启动方式对比</h1><h2 id="方式-A-—-TFTP-载入内存启动（initramfs-镜像）⭐-推荐"><a href="#方式-A-—-TFTP-载入内存启动（initramfs-镜像）⭐-推荐" class="headerlink" title="方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐"></a>方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐</h2><p>最适合：首次启动 &#x2F; 调试 &#x2F; 恢复 &#x2F; 测试。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">setenv ipaddr 192.168.1.1</span><br><span class="line">setenv serverip 192.168.1.100</span><br><span class="line">tftpboot 0x82000000 openwrt-...-initramfs-kernel.bin</span><br><span class="line">bootm 0x82000000</span><br></pre></td></tr></table></figure>
+<p>bootm 会自动按 uImage 头部把内核搬到 0x80001000 并跳转。<br>优点：自包含（内核+rootfs 都在内存），无需根文件系统分区、无需复杂 bootargs。</p>
+<h2 id="方式-B-—-烧进-SPI-NOR-从-Flash-启动（sysupgrade-镜像）"><a href="#方式-B-—-烧进-SPI-NOR-从-Flash-启动（sysupgrade-镜像）" class="headerlink" title="方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）"></a>方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）</h2><p>最适合：永久&#x2F;正式安装到板子。<br>先把 sysupgrade.bin 整体写进 firmware 分区 (0x50000)，再用 U-Boot 读取并 bootm：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># 首次烧写（在 U-Boot 里）</span><br><span class="line">sf probe</span><br><span class="line">sf erase 0x50000 0x1fb0000</span><br><span class="line">tftpboot 0x82000000 openwrt-...-squashfs-sysupgrade.bin</span><br><span class="line">sf write 0x82000000 0x50000 $&#123;filesize&#125;</span><br><span class="line"></span><br><span class="line"># 之后每次启动</span><br><span class="line">sf probe</span><br><span class="line">sf read 0x82000000 0x50000 0x400000</span><br><span class="line">bootm 0x82000000</span><br></pre></td></tr></table></figure>
+<p>内核会自动根据 DTS 的 <code>firmware</code>(denx,uimage) 分区定位并挂载 squashfs rootfs。</p>
+<h1 id="结论：最适合哪种？"><a href="#结论：最适合哪种？" class="headerlink" title="结论：最适合哪种？"></a>结论：最适合哪种？</h1><ul>
+<li>你这套 U-Boot 是 <strong>legacy-uImage 专用</strong>，而 OpenWrt 这个板子的两个镜像正好也是 <strong>legacy uImage</strong>，完全匹配、无需改镜像。</li>
+<li><strong>日常跑&#x2F;调试用 initramfs-kernel.bin 走 TFTP（方式 A）最省事</strong>；</li>
+<li><strong>定稿后把 squashfs-sysupgrade.bin 烧进 0x50000 分区（方式 B）做正式系统</strong>。</li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E4%B8%8E%E9%95%9C%E5%83%8F%E7%8E%B0%E7%8A%B6"><span class="toc-number">1.</span> <span class="toc-text">硬件与镜像现状</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#U-Boot-%E5%85%B3%E9%94%AE%E8%83%BD%E5%8A%9B%EF%BC%88%E6%8D%AE-build-x2F-config%EF%BC%89"><span class="toc-number">2.</span> <span class="toc-text">U-Boot 关键能力（据 build&#x2F;.config）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#OpenWrt-%E9%95%9C%E5%83%8F%EF%BC%88HLK-7621A-EVB-24-10-8-kernel-6-6-144%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">OpenWrt 镜像（HLK-7621A EVB, 24.10.8, kernel 6.6.144）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87-Flash-%E5%88%86%E5%8C%BA%E5%B8%83%E5%B1%80%EF%BC%88%E6%9D%A5%E8%87%AA%E5%86%85%E6%A0%B8-DTS%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">目标 Flash 分区布局（来自内核 DTS）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F%E5%AF%B9%E6%AF%94"><span class="toc-number">5.</span> <span class="toc-text">启动方式对比</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-A-%E2%80%94-TFTP-%E8%BD%BD%E5%85%A5%E5%86%85%E5%AD%98%E5%90%AF%E5%8A%A8%EF%BC%88initramfs-%E9%95%9C%E5%83%8F%EF%BC%89%E2%AD%90-%E6%8E%A8%E8%8D%90"><span class="toc-number">5.1.</span> <span class="toc-text">方式 A — TFTP 载入内存启动（initramfs 镜像）⭐ 推荐</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%96%B9%E5%BC%8F-B-%E2%80%94-%E7%83%A7%E8%BF%9B-SPI-NOR-%E4%BB%8E-Flash-%E5%90%AF%E5%8A%A8%EF%BC%88sysupgrade-%E9%95%9C%E5%83%8F%EF%BC%89"><span class="toc-number">5.2.</span> <span class="toc-text">方式 B — 烧进 SPI NOR 从 Flash 启动（sysupgrade 镜像）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%EF%BC%9A%E6%9C%80%E9%80%82%E5%90%88%E5%93%AA%E7%A7%8D%EF%BC%9F"><span class="toc-number">6.</span> <span class="toc-text">结论：最适合哪种？</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/27/hlk_7621_kit/boot-method/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&text=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&is_video=false&description=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621 U-Boot(2026.07) 启动方式分析&body=Check out this article: http://example.com/2026/08/27/hlk_7621_kit/boot-method/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&title=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&name=HLK-7621 U-Boot(2026.07) 启动方式分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/27/hlk_7621_kit/boot-method/&t=HLK-7621 U-Boot(2026.07) 启动方式分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

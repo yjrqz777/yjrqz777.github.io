@@ -1,0 +1,24 @@
+/* Keep logo-style OpenWrt SVG covers visible in Butterfly post cards. */
+#recent-posts > .recent-post-item .post_cover img.post-bg[src*="/img/openwrt/"] {
+  box-sizing: border-box;
+  padding: 24px;
+  background-color: #ffffff;
+  object-fit: contain;
+}
+
+#recent-posts > .recent-post-item:hover .post_cover img.post-bg[src*="/img/openwrt/"] {
+  transform: none;
+}
+
+.card-recent-post .aside-list .thumbnail img[src*="/img/openwrt/"] {
+  box-sizing: border-box;
+  padding: 6px;
+  background-color: #ffffff;
+  object-fit: contain;
+}
+
+@media screen and (max-width: 768px) {
+  #recent-posts > .recent-post-item .post_cover img.post-bg[src*="/img/openwrt/"] {
+    padding: 18px;
+  }
+}

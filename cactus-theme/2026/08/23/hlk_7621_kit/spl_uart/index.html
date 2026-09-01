@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="梳理 HLK-7621 U-Boot SPL 阶段串口初始化调用链与 MTK HSUART 波特率配置流程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HLK-7621-uboot(2026.07)笔记-05">
+<meta property="og:url" content="http://example.com/2026/08/23/hlk_7621_kit/spl_uart/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="梳理 HLK-7621 U-Boot SPL 阶段串口初始化调用链与 MTK HSUART 波特率配置流程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-08-23T02:13:00.000Z">
+<meta property="article:modified_time" content="2026-09-01T06:55:09.289Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="OpenWrt">
+<meta property="article:tag" content="U-Boot">
+<meta property="article:tag" content="spl">
+<meta property="article:tag" content="uart">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>HLK-7621-uboot(2026.07)笔记-05</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/08/23/hlk_7621_kit/spl_init/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/08/21/hlk_7621_kit/tpl/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&text=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&is_video=false&description=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621-uboot(2026.07)笔记-05&body=Check out this article: http://example.com/2026/08/23/hlk_7621_kit/spl_uart/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&name=HLK-7621-uboot(2026.07)笔记-05&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&t=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-spl-x2F-spl-c"><span class="toc-number">1.</span> <span class="toc-text">arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;spl&#x2F;spl.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#mtmips-spl-serial-init"><span class="toc-number">1.1.</span> <span class="toc-text">mtmips_spl_serial_init()</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#common-x2F-spl-x2F-spl-c"><span class="toc-number">2.</span> <span class="toc-text">common&#x2F;spl&#x2F;spl.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#preloader-console-init"><span class="toc-number">2.1.</span> <span class="toc-text">preloader_console_init()</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#drivers-x2F-serial-x2F-serial-c"><span class="toc-number">3.</span> <span class="toc-text">drivers&#x2F;serial&#x2F;serial.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#get-current-gt-start"><span class="toc-number">3.1.</span> <span class="toc-text">get_current()-&gt;start()</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DECLARE-HSUART%EF%BC%88%E5%87%BD%E6%95%B0%E9%80%9A%E8%BF%87%E4%B8%80%E7%B3%BB%E5%88%97%E5%AE%8F%E5%88%9B%E5%BB%BA%EF%BC%89"><span class="toc-number">3.1.1.</span> <span class="toc-text">DECLARE_HSUART（函数通过一系列宏创建）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DECLARE-HSUART-1-%E2%80%9Cmtk-hsuart0%E2%80%9D-%EF%BC%88%E7%94%A8%E5%AE%8F%E6%89%B9%E9%87%8F%E7%94%9F%E6%88%90%E4%B8%80%E4%B8%AA%E4%B8%B2%E5%8F%A3%E8%AE%BE%E5%A4%87%E7%BB%93%E6%9E%84%E4%BD%93%EF%BC%8C%E5%B9%B6%E7%BB%91%E5%AE%9A%E5%AF%B9%E5%BA%94%E7%9A%84%E6%93%8D%E4%BD%9C%E5%87%BD%E6%95%B0%EF%BC%89"><span class="toc-number">3.2.</span> <span class="toc-text">DECLARE_HSUART(1, “mtk-hsuart0”);（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        HLK-7621-uboot(2026.07)笔记-05
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-08-23T02:13:00.000Z" class="dt-published" itemprop="datePublished">2026-08-23</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/OpenWrt/">OpenWrt</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/OpenWrt/" rel="tag">OpenWrt</a>, <a class="p-category" href="/cactus-theme/tags/U-Boot/" rel="tag">U-Boot</a>, <a class="p-category" href="/cactus-theme/tags/spl/" rel="tag">spl</a>, <a class="p-category" href="/cactus-theme/tags/uart/" rel="tag">uart</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">preloader_console_init()</span><br><span class="line">        ↓</span><br><span class="line">serial_init()</span><br><span class="line">        ↓</span><br><span class="line">get_current()</span><br><span class="line">        ↓</span><br><span class="line">default_serial_console()</span><br><span class="line">        ↓</span><br><span class="line">mtk_hsuart1_device.start()</span><br><span class="line">        ↓</span><br><span class="line">mtk_serial1_init()          ← 真正初始化 UART</span><br><span class="line">        ↓</span><br><span class="line">_mtk_serial_setbrg()        ← 设置波特率</span><br></pre></td></tr></table></figure>
+
+<h1 id="arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-spl-x2F-spl-c"><a href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-spl-x2F-spl-c" class="headerlink" title="arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;spl&#x2F;spl.c"></a>arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;spl&#x2F;spl.c</h1><h2 id="mtmips-spl-serial-init"><a href="#mtmips-spl-serial-init" class="headerlink" title="mtmips_spl_serial_init()"></a>mtmips_spl_serial_init()</h2><ul>
+<li>清位</li>
+</ul>
+<h1 id="common-x2F-spl-x2F-spl-c"><a href="#common-x2F-spl-x2F-spl-c" class="headerlink" title="common&#x2F;spl&#x2F;spl.c"></a>common&#x2F;spl&#x2F;spl.c</h1><h2 id="preloader-console-init"><a href="#preloader-console-init" class="headerlink" title="preloader_console_init()"></a>preloader_console_init()</h2><ul>
+<li>初始化串口</li>
+</ul>
+<h1 id="drivers-x2F-serial-x2F-serial-c"><a href="#drivers-x2F-serial-x2F-serial-c" class="headerlink" title="drivers&#x2F;serial&#x2F;serial.c"></a>drivers&#x2F;serial&#x2F;serial.c</h1><h2 id="get-current-gt-start"><a href="#get-current-gt-start" class="headerlink" title="get_current()-&gt;start()"></a>get_current()-&gt;start()</h2><ul>
+<li>初始化函数</li>
+</ul>
+<h3 id="DECLARE-HSUART（函数通过一系列宏创建）"><a href="#DECLARE-HSUART（函数通过一系列宏创建）" class="headerlink" title="DECLARE_HSUART（函数通过一系列宏创建）"></a>DECLARE_HSUART（函数通过一系列宏创建）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">mtk_serial1_init()</span><br><span class="line">&#123;</span><br><span class="line">    // 关闭 UART 中断</span><br><span class="line">    writel(0, &amp;regs-&gt;ier);</span><br><span class="line"></span><br><span class="line">    // 配置 Modem Control Register</span><br><span class="line">    writel(UART_MCRVAL, &amp;regs-&gt;mcr);</span><br><span class="line"></span><br><span class="line">    // 配置 FIFO</span><br><span class="line">    writel(UART_FCRVAL, &amp;regs-&gt;fcr);</span><br><span class="line"></span><br><span class="line">    // 设置波特率</span><br><span class="line">    _mtk_serial_setbrg(...);</span><br><span class="line"></span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="DECLARE-HSUART-1-“mtk-hsuart0”-（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）"><a href="#DECLARE-HSUART-1-“mtk-hsuart0”-（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）" class="headerlink" title="DECLARE_HSUART(1, “mtk-hsuart0”);（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）"></a>DECLARE_HSUART(1, “mtk-hsuart0”);（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）</h2><ul>
+<li>注册初始化start<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">static struct mtk_serial_priv mtk_hsuart1 = &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">static int mtk_serial1_init(void)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">static void mtk_serial1_putc(...)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">struct serial_device mtk_hsuart1_device = &#123;</span><br><span class="line">    .name  = &quot;mtk-hsuart0&quot;,</span><br><span class="line">    .start = mtk_serial1_init,</span><br><span class="line">    .putc  = mtk_serial1_putc,</span><br><span class="line">    ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#arch-x2F-mips-x2F-mach-mtmips-x2F-mt7621-x2F-spl-x2F-spl-c"><span class="toc-number">1.</span> <span class="toc-text">arch&#x2F;mips&#x2F;mach-mtmips&#x2F;mt7621&#x2F;spl&#x2F;spl.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#mtmips-spl-serial-init"><span class="toc-number">1.1.</span> <span class="toc-text">mtmips_spl_serial_init()</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#common-x2F-spl-x2F-spl-c"><span class="toc-number">2.</span> <span class="toc-text">common&#x2F;spl&#x2F;spl.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#preloader-console-init"><span class="toc-number">2.1.</span> <span class="toc-text">preloader_console_init()</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#drivers-x2F-serial-x2F-serial-c"><span class="toc-number">3.</span> <span class="toc-text">drivers&#x2F;serial&#x2F;serial.c</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#get-current-gt-start"><span class="toc-number">3.1.</span> <span class="toc-text">get_current()-&gt;start()</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DECLARE-HSUART%EF%BC%88%E5%87%BD%E6%95%B0%E9%80%9A%E8%BF%87%E4%B8%80%E7%B3%BB%E5%88%97%E5%AE%8F%E5%88%9B%E5%BB%BA%EF%BC%89"><span class="toc-number">3.1.1.</span> <span class="toc-text">DECLARE_HSUART（函数通过一系列宏创建）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DECLARE-HSUART-1-%E2%80%9Cmtk-hsuart0%E2%80%9D-%EF%BC%88%E7%94%A8%E5%AE%8F%E6%89%B9%E9%87%8F%E7%94%9F%E6%88%90%E4%B8%80%E4%B8%AA%E4%B8%B2%E5%8F%A3%E8%AE%BE%E5%A4%87%E7%BB%93%E6%9E%84%E4%BD%93%EF%BC%8C%E5%B9%B6%E7%BB%91%E5%AE%9A%E5%AF%B9%E5%BA%94%E7%9A%84%E6%93%8D%E4%BD%9C%E5%87%BD%E6%95%B0%EF%BC%89"><span class="toc-number">3.2.</span> <span class="toc-text">DECLARE_HSUART(1, “mtk-hsuart0”);（用宏批量生成一个串口设备结构体，并绑定对应的操作函数）</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&text=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&is_video=false&description=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=HLK-7621-uboot(2026.07)笔记-05&body=Check out this article: http://example.com/2026/08/23/hlk_7621_kit/spl_uart/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&title=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&name=HLK-7621-uboot(2026.07)笔记-05&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/08/23/hlk_7621_kit/spl_uart/&t=HLK-7621-uboot(2026.07)笔记-05"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
