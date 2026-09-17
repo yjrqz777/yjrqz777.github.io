@@ -14,7 +14,7 @@
 <meta property="og:description" content="汇总 HLK-7621 U-Boot 学习中的 FIT、uImage、initramfs 与启动镜像相关基础知识。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-08-26T12:30:00.000Z">
-<meta property="article:modified_time" content="2026-09-01T06:55:09.288Z">
+<meta property="article:modified_time" content="2026-09-17T14:48:07.493Z">
 <meta property="article:author" content="yjrqz777">
 <meta property="article:tag" content="MT7621">
 <meta property="article:tag" content="OpenWrt">
@@ -118,7 +118,7 @@
     
     
       <div id="toc">
-        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-u-boot"><span class="toc-number">1.</span> <span class="toc-text">1 u-boot</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-FIT-Flattened-Image-Tree"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 FIT (Flattened Image Tree)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-PXE-Preboot-eXecution-Environment"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 PXE(Preboot eXecution Environment)</span></a></li></ol></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-u-boot"><span class="toc-number">1.</span> <span class="toc-text">1 u-boot</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-FIT-Flattened-Image-Tree"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 FIT (Flattened Image Tree)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-PXE-Preboot-eXecution-Environment"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 PXE(Preboot eXecution Environment)</span></a></li></ol></li></ol>
       </div>
     
   </span>
@@ -168,7 +168,7 @@
   
 
   <div class="content e-content" itemprop="articleBody">
-    <h1 id="1-u-boot"><a href="#1-u-boot" class="headerlink" title="1 u-boot"></a>1 u-boot</h1><h2 id="1-1-FIT-Flattened-Image-Tree"><a href="#1-1-FIT-Flattened-Image-Tree" class="headerlink" title="1.1 FIT (Flattened Image Tree)"></a>1.1 FIT (Flattened Image Tree)</h2><ul>
+    <h2 id="1-u-boot"><a href="#1-u-boot" class="headerlink" title="1 u-boot"></a>1 u-boot</h2><h3 id="1-1-FIT-Flattened-Image-Tree"><a href="#1-1-FIT-Flattened-Image-Tree" class="headerlink" title="1.1 FIT (Flattened Image Tree)"></a>1.1 FIT (Flattened Image Tree)</h3><ul>
 <li>是 U-Boot 的一种”打包容器”格式（本质是一个描述性 DTB，把内核、设备树、initramfs 等多个文件打包在一起）。</li>
 </ul>
 <table>
@@ -201,7 +201,7 @@
 </tr>
 </tbody></table>
 <p>FIT 主要给 需要多套内核+多套设备树、或需要更强完整性校验 的场景用（比如一个固件适配多个硬件型号，靠 FIT 里塞多个 dtb 来切换）。</p>
-<h2 id="1-2-PXE-Preboot-eXecution-Environment"><a href="#1-2-PXE-Preboot-eXecution-Environment" class="headerlink" title="1.2 PXE(Preboot eXecution Environment)"></a>1.2 PXE(Preboot eXecution Environment)</h2><ul>
+<h3 id="1-2-PXE-Preboot-eXecution-Environment"><a href="#1-2-PXE-Preboot-eXecution-Environment" class="headerlink" title="1.2 PXE(Preboot eXecution Environment)"></a>1.2 PXE(Preboot eXecution Environment)</h3><ul>
 <li>一种从网络启动的机制</li>
 <li>板子没有本地可启动系统时，通过 DHCP + TFTP 从服务器下载内核和启动脚本（类似装机时 PXE 网启 Linux 那套）</li>
 </ul>
@@ -232,7 +232,7 @@
     
     
       <div id="toc-footer" style="display: none">
-        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-u-boot"><span class="toc-number">1.</span> <span class="toc-text">1 u-boot</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-FIT-Flattened-Image-Tree"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 FIT (Flattened Image Tree)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-PXE-Preboot-eXecution-Environment"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 PXE(Preboot eXecution Environment)</span></a></li></ol></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-u-boot"><span class="toc-number">1.</span> <span class="toc-text">1 u-boot</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-FIT-Flattened-Image-Tree"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 FIT (Flattened Image Tree)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-PXE-Preboot-eXecution-Environment"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 PXE(Preboot eXecution Environment)</span></a></li></ol></li></ol>
       </div>
     
 

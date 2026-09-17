@@ -14,7 +14,7 @@
 <meta property="og:description" content="记录 HLK-7621 U-Boot webflash 上传、RAM 加载、uImage 启动与固件大小校验过程。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-01T05:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-01T06:59:55.023Z">
+<meta property="article:modified_time" content="2026-09-17T14:48:07.502Z">
 <meta property="article:author" content="yjrqz777">
 <meta property="article:tag" content="MT7621">
 <meta property="article:tag" content="OpenWrt">
@@ -119,7 +119,7 @@
     
     
       <div id="toc">
-        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
       </div>
     
   </span>
@@ -169,7 +169,7 @@
   
 
   <div class="content e-content" itemprop="articleBody">
-    <h1 id="1-当前状态"><a href="#1-当前状态" class="headerlink" title="1 当前状态"></a>1 当前状态</h1><ul>
+    <h2 id="1-当前状态"><a href="#1-当前状态" class="headerlink" title="1 当前状态"></a>1 当前状态</h2><ul>
 <li>U-Boot 使用 lwIP 网络栈。</li>
 <li>Web 恢复命令为 <code>webflash</code>，监听 TCP 80 端口。</li>
 <li>默认地址：<code>192.168.31.66/24</code>。</li>
@@ -183,7 +183,7 @@
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">=&gt; webflash</span><br><span class="line">Web recovery listening on http://192.168.31.66/</span><br><span class="line">Upload address: 0x83000000, maximum size: 0x1fb0000</span><br><span class="line">RAM upload only; Flash writes are disabled. Press Ctrl-C to stop.</span><br></pre></td></tr></table></figure>
 
 <p>只有执行 <code>webflash</code> 并停留在其轮询循环中，网页才可以访问；出现 <code>=&gt;</code> 提示符时表示网页服务没有运行。</p>
-<h1 id="2-网络连接与访问"><a href="#2-网络连接与访问" class="headerlink" title="2 网络连接与访问"></a>2 网络连接与访问</h1><p>通过现有路由器访问时：</p>
+<h2 id="2-网络连接与访问"><a href="#2-网络连接与访问" class="headerlink" title="2 网络连接与访问"></a>2 网络连接与访问</h2><p>通过现有路由器访问时：</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">主路由器 LAN 口</span><br><span class="line">        │</span><br><span class="line">        └── 开发板 LAN1/LAN2/LAN3/LAN4</span><br></pre></td></tr></table></figure>
 
 <p>不要接开发板 WAN 口。OpenWrt 默认禁止从 WAN 访问 LuCI。</p>
@@ -197,13 +197,13 @@
 <figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ping <span class="number">192.168</span>.<span class="number">31.66</span></span><br><span class="line"><span class="built_in">Test-NetConnection</span> <span class="number">192.168</span>.<span class="number">31.66</span> <span class="literal">-Port</span> <span class="number">80</span></span><br><span class="line">curl.exe <span class="literal">--noproxy</span> <span class="string">&quot;*&quot;</span> <span class="literal">-v</span> <span class="literal">--max-time</span> <span class="number">10</span> http://<span class="number">192.168</span>.<span class="number">31.66</span>/api/info</span><br><span class="line">curl.exe <span class="literal">--noproxy</span> <span class="string">&quot;*&quot;</span> <span class="literal">-v</span> <span class="literal">--max-time</span> <span class="number">10</span> http://<span class="number">192.168</span>.<span class="number">31.66</span>/</span><br></pre></td></tr></table></figure>
 
 <p>PowerShell 中应明确使用 <code>curl.exe</code>，避免调用 <code>curl</code> 对应的 <code>Invoke-WebRequest</code> 别名。</p>
-<h1 id="3-TCP-能连接但-HTTP-返回-0-字节的问题"><a href="#3-TCP-能连接但-HTTP-返回-0-字节的问题" class="headerlink" title="3 TCP 能连接但 HTTP 返回 0 字节的问题"></a>3 TCP 能连接但 HTTP 返回 0 字节的问题</h1><h2 id="3-1-现象"><a href="#3-1-现象" class="headerlink" title="3.1 现象"></a>3.1 现象</h2><ul>
+<h2 id="3-TCP-能连接但-HTTP-返回-0-字节的问题"><a href="#3-TCP-能连接但-HTTP-返回-0-字节的问题" class="headerlink" title="3 TCP 能连接但 HTTP 返回 0 字节的问题"></a>3 TCP 能连接但 HTTP 返回 0 字节的问题</h2><h3 id="3-1-现象"><a href="#3-1-现象" class="headerlink" title="3.1 现象"></a>3.1 现象</h3><ul>
 <li><code>ping</code> 正常，TTL 为 255。</li>
 <li><code>Test-NetConnection ... -Port 80</code> 返回 <code>TcpTestSucceeded : True</code>。</li>
 <li>TCP 三次握手成功，客户端能发出 GET 请求。</li>
 <li>HTTP 一直收到 0 字节，最终超时。</li>
 </ul>
-<h2 id="3-2-根因"><a href="#3-2-根因" class="headerlink" title="3.2 根因"></a>3.2 根因</h2><p>问题位于：</p>
+<h3 id="3-2-根因"><a href="#3-2-根因" class="headerlink" title="3.2 根因"></a>3.2 根因</h3><p>问题位于：</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">net/lwip/net-lwip.c</span><br></pre></td></tr></table></figure>
 
 <p>原来的 <code>net_lwip_tx()</code> 只把第一个 pbuf 的 <code>p-&gt;payload</code>、<code>p-&gt;len</code> 交给网卡驱动。</p>
@@ -212,7 +212,7 @@
 <p>TCP SYN&#x2F;ACK 通常只有一个 pbuf，所以握手能够成功。HTTP 响应包含响应头和正文，可能形成多个 pbuf；只发送 <code>p-&gt;len</code> 会截断数据帧，客户端因此丢弃响应并等待到超时。</p>
 <p>修复方法：如果存在 pbuf 链或首地址未对齐，先按 <code>p-&gt;tot_len</code> 把完整数据复制到一块连续、对齐的内存，再交给 U-Boot Ethernet 驱动发送。</p>
 <p>该修复属于 lwIP 底层发送修复，不只对 WebFlash 有效。</p>
-<h2 id="3-3-HTTP-响应状态机"><a href="#3-3-HTTP-响应状态机" class="headerlink" title="3.3 HTTP 响应状态机"></a>3.3 HTTP 响应状态机</h2><p><code>cmd/lwip/webflash.c</code> 同时完成了以下处理：</p>
+<h3 id="3-3-HTTP-响应状态机"><a href="#3-3-HTTP-响应状态机" class="headerlink" title="3.3 HTTP 响应状态机"></a>3.3 HTTP 响应状态机</h3><p><code>cmd/lwip/webflash.c</code> 同时完成了以下处理：</p>
 <ul>
 <li>注册 <code>tcp_sent()</code> 回调。</li>
 <li>响应进入发送队列后，不立即关闭 TCP。</li>
@@ -224,7 +224,7 @@
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Web client connected: 192.168.31.40:57693</span><br><span class="line">Web received: 85 bytes</span><br><span class="line">Web request: GET /api/info HTTP/1.1</span><br><span class="line">Web response: 200 OK, 342 bytes queued</span><br><span class="line">Web acknowledged: 342 bytes, 0 remaining</span><br></pre></td></tr></table></figure>
 
 <p>浏览器请求 <code>/favicon.ico</code> 返回 <code>404 Not Found</code> 只是没有提供网页图标，不影响页面和上传功能。</p>
-<h1 id="4-上传镜像并从-RAM-启动-OpenWrt"><a href="#4-上传镜像并从-RAM-启动-OpenWrt" class="headerlink" title="4 上传镜像并从 RAM 启动 OpenWrt"></a>4 上传镜像并从 RAM 启动 OpenWrt</h1><p>用于 RAM 启动的镜像：</p>
+<h2 id="4-上传镜像并从-RAM-启动-OpenWrt"><a href="#4-上传镜像并从-RAM-启动-OpenWrt" class="headerlink" title="4 上传镜像并从 RAM 启动 OpenWrt"></a>4 上传镜像并从 RAM 启动 OpenWrt</h2><p>用于 RAM 启动的镜像：</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openwrt-ramips-mt7621-hilink_hlk-7621a-evb-initramfs-kernel.bin</span><br></pre></td></tr></table></figure>
 
 <p>本次验证的镜像大小为 8417175 字节。网页上传成功日志：</p>
@@ -235,7 +235,7 @@
 
 <p>不要使用 <code>go</code>。<code>initramfs-kernel.bin</code> 包含内核和临时根文件系统，可以完全从 RAM 启动；复位后 RAM 系统消失，Flash 内容不变。</p>
 <p><code>squashfs-sysupgrade.bin</code> 用于写入 firmware 分区，不应当作完整的 RAM 系统直接运行。</p>
-<h1 id="5-U-Boot-与-OpenWrt-串口波特率"><a href="#5-U-Boot-与-OpenWrt-串口波特率" class="headerlink" title="5 U-Boot 与 OpenWrt 串口波特率"></a>5 U-Boot 与 OpenWrt 串口波特率</h1><p>当前配置：</p>
+<h2 id="5-U-Boot-与-OpenWrt-串口波特率"><a href="#5-U-Boot-与-OpenWrt-串口波特率" class="headerlink" title="5 U-Boot 与 OpenWrt 串口波特率"></a>5 U-Boot 与 OpenWrt 串口波特率</h2><p>当前配置：</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">U-Boot：  115200 8N1</span><br><span class="line">OpenWrt： 57600 8N1</span><br></pre></td></tr></table></figure>
 
 <p>OpenWrt 的 <code>target/linux/ramips/dts/mt7621.dtsi</code> 默认包含：</p>
@@ -250,7 +250,7 @@
 <figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">chosen</span> <span class="punctuation">&#123;</span></span><br><span class="line">	<span class="attr">bootargs</span> <span class="operator">=</span> <span class="string">&quot;console=ttyS0,115200&quot;</span><span class="punctuation">;</span></span><br><span class="line"><span class="punctuation">&#125;;</span></span><br></pre></td></tr></table></figure>
 
 <p>不要修改公共 <code>mt7621.dtsi</code>，否则会影响其他 MT7621 设备。</p>
-<h1 id="6-OpenWrt-临时使用-192-168-31-66"><a href="#6-OpenWrt-临时使用-192-168-31-66" class="headerlink" title="6 OpenWrt 临时使用 192.168.31.66"></a>6 OpenWrt 临时使用 192.168.31.66</h1><p>当前 OpenWrt 默认 LAN 接口为 <code>br-lan</code>，默认地址为 <code>192.168.1.1/24</code>。BusyBox 精简版 <code>ip</code> 不支持 <code>ip -br addr</code>，使用：</p>
+<h2 id="6-OpenWrt-临时使用-192-168-31-66"><a href="#6-OpenWrt-临时使用-192-168-31-66" class="headerlink" title="6 OpenWrt 临时使用 192.168.31.66"></a>6 OpenWrt 临时使用 192.168.31.66</h2><p>当前 OpenWrt 默认 LAN 接口为 <code>br-lan</code>，默认地址为 <code>192.168.1.1/24</code>。BusyBox 精简版 <code>ip</code> 不支持 <code>ip -br addr</code>，使用：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ip addr show</span><br></pre></td></tr></table></figure>
 
 <p>在 initramfs 中临时增加地址：</p>
@@ -269,7 +269,7 @@
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.31.66/cgi-bin/luci</span><br></pre></td></tr></table></figure>
 
 <p><code>ip addr add</code>、停止 dnsmasq 和 initramfs 内的 UCI 修改在重启后都会消失。</p>
-<h1 id="7-正式系统持久设置-LAN-地址"><a href="#7-正式系统持久设置-LAN-地址" class="headerlink" title="7 正式系统持久设置 LAN 地址"></a>7 正式系统持久设置 LAN 地址</h1><p>正式将 OpenWrt 写入 Flash 后，使用 UCI 持久保存：</p>
+<h2 id="7-正式系统持久设置-LAN-地址"><a href="#7-正式系统持久设置-LAN-地址" class="headerlink" title="7 正式系统持久设置 LAN 地址"></a>7 正式系统持久设置 LAN 地址</h2><p>正式将 OpenWrt 写入 Flash 后，使用 UCI 持久保存：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">uci <span class="built_in">set</span> network.lan.proto=<span class="string">&#x27;static&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.ipaddr=<span class="string">&#x27;192.168.31.66&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.netmask=<span class="string">&#x27;255.255.255.0&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.gateway=<span class="string">&#x27;192.168.31.1&#x27;</span></span><br><span class="line">uci <span class="built_in">set</span> network.lan.dns=<span class="string">&#x27;192.168.31.1&#x27;</span></span><br><span class="line">uci commit network</span><br><span class="line"></span><br><span class="line">uci <span class="built_in">set</span> dhcp.lan.ignore=<span class="string">&#x27;1&#x27;</span></span><br><span class="line">uci commit dhcp</span><br><span class="line"></span><br><span class="line">/etc/init.d/network restart</span><br><span class="line">/etc/init.d/dnsmasq restart</span><br><span class="line">/etc/init.d/uhttpd restart</span><br></pre></td></tr></table></figure>
 
 <p><code>192.168.31.66</code> 必须确认没有被主路由器 DHCP 分配给其他设备。</p>
@@ -300,7 +300,7 @@
     
     
       <div id="toc-footer" style="display: none">
-        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E5%BD%93%E5%89%8D%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1 当前状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E4%B8%8E%E8%AE%BF%E9%97%AE"><span class="toc-number">2.</span> <span class="toc-text">2 网络连接与访问</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-TCP-%E8%83%BD%E8%BF%9E%E6%8E%A5%E4%BD%86-HTTP-%E8%BF%94%E5%9B%9E-0-%E5%AD%97%E8%8A%82%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">3.</span> <span class="toc-text">3 TCP 能连接但 HTTP 返回 0 字节的问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E7%8E%B0%E8%B1%A1"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 现象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E6%A0%B9%E5%9B%A0"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 根因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-HTTP-%E5%93%8D%E5%BA%94%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 HTTP 响应状态机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E4%B8%8A%E4%BC%A0%E9%95%9C%E5%83%8F%E5%B9%B6%E4%BB%8E-RAM-%E5%90%AF%E5%8A%A8-OpenWrt"><span class="toc-number">4.</span> <span class="toc-text">4 上传镜像并从 RAM 启动 OpenWrt</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-U-Boot-%E4%B8%8E-OpenWrt-%E4%B8%B2%E5%8F%A3%E6%B3%A2%E7%89%B9%E7%8E%87"><span class="toc-number">5.</span> <span class="toc-text">5 U-Boot 与 OpenWrt 串口波特率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-OpenWrt-%E4%B8%B4%E6%97%B6%E4%BD%BF%E7%94%A8-192-168-31-66"><span class="toc-number">6.</span> <span class="toc-text">6 OpenWrt 临时使用 192.168.31.66</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E6%AD%A3%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%8C%81%E4%B9%85%E8%AE%BE%E7%BD%AE-LAN-%E5%9C%B0%E5%9D%80"><span class="toc-number">7.</span> <span class="toc-text">7 正式系统持久设置 LAN 地址</span></a></li></ol>
       </div>
     
 
