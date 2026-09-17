@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="一次把 printf 讲明白：四个格式化函数的区别、流与 fd 的分层、newlib 与 microlib 各自把最后一跳接在哪（_write 还是 fputc）、行缓冲与 tty、以及 MCU 上最容易踩的坑。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理">
+<meta property="og:url" content="http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="一次把 printf 讲明白：四个格式化函数的区别、流与 fd 的分层、newlib 与 microlib 各自把最后一跳接在哪（_write 还是 fputc）、行缓冲与 tty、以及 MCU 上最容易踩的坑。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-17T12:35:00.000Z">
+<meta property="article:modified_time" content="2026-09-17T13:56:01.827Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="Keil">
+<meta property="article:tag" content="printf">
+<meta property="article:tag" content="stdio">
+<meta property="article:tag" content="newlib">
+<meta property="article:tag" content="microlib">
+<meta property="article:tag" content="retarget">
+<meta property="article:tag" content="RISC-V">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/09/01/hlk_7621_kit/webflash/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&text=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&is_video=false&description=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理&body=Check out this article: http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&name=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理&description=&lt;h1 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h1&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;printf&lt;/code&gt; 的&lt;strong&gt;最后一跳&lt;/strong&gt;是 libc 留给你的一个空符号，但填哪个符号&lt;strong&gt;由库决定&lt;/strong&gt;：newlib 是 &lt;code&gt;_write&lt;/code&gt;，microlib 是 &lt;code&gt;fputc&lt;/code&gt;，Arm 标准 C 库是 &lt;code&gt;_sys_*&lt;/code&gt;，IAR 是 &lt;code&gt;__write&lt;/code&gt;。跨库没有统一的约定。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;printf&lt;/code&gt; &amp;#x2F; &lt;code&gt;vprintf&lt;/code&gt; &amp;#x2F; &lt;code&gt;fprintf&lt;/code&gt; &amp;#x2F; &lt;code&gt;vfprintf&lt;/code&gt; 只是”&lt;strong&gt;目标流 × 参数来源&lt;/strong&gt;“的 2×2 组合，本质是同一个格式化内核。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;流（&lt;code&gt;FILE*&lt;/code&gt;）&lt;/strong&gt; 比 &lt;strong&gt;fd&lt;/strong&gt; 多一层缓冲和状态；fd 只是”目标是谁”的编号。&lt;/li&gt;
+&lt;li&gt;newlib 里三个标准流的缓冲是&lt;strong&gt;写死&lt;/strong&gt;的：&lt;code&gt;stdin&lt;/code&gt; 只读、&lt;code&gt;stdout&lt;/code&gt; &lt;strong&gt;行缓冲&lt;/strong&gt;、&lt;code&gt;stderr&lt;/code&gt; &lt;strong&gt;无缓冲&lt;/strong&gt;（实测 &lt;code&gt;__sinit&lt;/code&gt;）。所以换行结尾的日志不用手动 &lt;code&gt;fflush&lt;/code&gt;，而复位会丢掉缓冲区里没刷出的数据。&lt;/li&gt;
+&lt;li&gt;MCU 上最容易踩的坑：&lt;strong&gt;newlib-nano 默认不支持 &lt;code&gt;%f&lt;/code&gt;&lt;strong&gt;、&lt;/strong&gt;自定义流永远判不成 tty → 默认全缓冲&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&t=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%9B%9B%E4%B8%AA%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%87%BD%E6%95%B0"><span class="toc-number">2.</span> <span class="toc-text">1. 四个格式化函数</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E6%B5%81%EF%BC%88stream%EF%BC%89%E3%80%81FILE-%E4%B8%8E-fd"><span class="toc-number">3.</span> <span class="toc-text">2. 流（stream）、FILE* 与 fd</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E4%BB%80%E4%B9%88%E6%98%AF-fd"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 什么是 fd</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-%E4%BB%80%E4%B9%88%E6%98%AF-FILE"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 什么是 FILE*</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-%E4%B8%89%E4%B8%AA%E6%A0%87%E5%87%86%E6%B5%81%E7%9A%84%E5%AF%B9%E5%BA%94%E5%85%B3%E7%B3%BB"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 三个标准流的对应关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-%E5%88%86%E5%B7%A5%EF%BC%9A%E8%B0%81%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="toc-number">3.4.</span> <span class="toc-text">2.4 分工：谁负责什么</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E4%BB%8E-printf-%E5%88%B0%E4%B8%B2%E5%8F%A3%E7%9A%84%E5%AE%8C%E6%95%B4%E8%B0%83%E7%94%A8%E9%93%BE"><span class="toc-number">4.</span> <span class="toc-text">3. 从 printf 到串口的完整调用链</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E5%90%84%E5%BA%93%E7%9A%84-retarget-%E7%82%B9"><span class="toc-number">5.</span> <span class="toc-text">4. 各库的 retarget 点</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-putc-%E4%B8%8E-fputc"><span class="toc-number">6.</span> <span class="toc-text">5. putc 与 fputc</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-%E7%BC%93%E5%86%B2%E3%80%81%E8%A1%8C%E7%BC%93%E5%86%B2%E4%B8%8E-tty"><span class="toc-number">7.</span> <span class="toc-text">6. 缓冲、行缓冲与 tty</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1-%E4%B8%89%E4%B8%AA%E6%A0%87%E5%87%86%E6%B5%81%E7%9A%84%E7%BC%93%E5%86%B2%E6%98%AF%E5%86%99%E6%AD%BB%E7%9A%84"><span class="toc-number">7.1.</span> <span class="toc-text">6.1 三个标准流的缓冲是写死的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-2-%E4%BB%80%E4%B9%88%E6%98%AF-tty%EF%BC%8Cstdio-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%85%B3%E5%BF%83%E5%AE%83"><span class="toc-number">7.2.</span> <span class="toc-text">6.2 什么是 tty，stdio 为什么关心它</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-3-fflush-%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E6%89%8D%E7%9C%9F%E7%9A%84%E5%BF%85%E8%A6%81"><span class="toc-number">7.3.</span> <span class="toc-text">6.3 fflush 什么时候才真的必要</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-MCU-%E4%B8%8A%E5%AE%B9%E6%98%93%E8%B8%A9%E7%9A%84%E5%9D%91"><span class="toc-number">8.</span> <span class="toc-text">7. MCU 上容易踩的坑</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#8-%E9%80%9F%E6%9F%A5"><span class="toc-number">9.</span> <span class="toc-text">8. 速查</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95%EF%BC%9A%E5%9B%9B%E4%B8%AA%E5%87%BD%E6%95%B0%E6%8E%A5%E5%8F%A3%E5%8E%9F%E5%9E%8B%E4%B8%8E%E7%94%A8%E6%B3%95"><span class="toc-number">10.</span> <span class="toc-text">附录：四个函数接口原型与用法</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%A4%E4%B8%AA-wrapper-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%A8%E6%B3%95"><span class="toc-number">10.1.</span> <span class="toc-text">两个 wrapper 的完整用法</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-09-17T12:35:00.000Z" class="dt-published" itemprop="datePublished">2026-09-17</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Keil/" rel="tag">Keil</a>, <a class="p-category" href="/cactus-theme/tags/RISC-V/" rel="tag">RISC-V</a>, <a class="p-category" href="/cactus-theme/tags/microlib/" rel="tag">microlib</a>, <a class="p-category" href="/cactus-theme/tags/newlib/" rel="tag">newlib</a>, <a class="p-category" href="/cactus-theme/tags/printf/" rel="tag">printf</a>, <a class="p-category" href="/cactus-theme/tags/retarget/" rel="tag">retarget</a>, <a class="p-category" href="/cactus-theme/tags/stdio/" rel="tag">stdio</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h1><ul>
+<li><code>printf</code> 的<strong>最后一跳</strong>是 libc 留给你的一个空符号，但填哪个符号<strong>由库决定</strong>：newlib 是 <code>_write</code>，microlib 是 <code>fputc</code>，Arm 标准 C 库是 <code>_sys_*</code>，IAR 是 <code>__write</code>。跨库没有统一的约定。</li>
+<li><code>printf</code> &#x2F; <code>vprintf</code> &#x2F; <code>fprintf</code> &#x2F; <code>vfprintf</code> 只是”<strong>目标流 × 参数来源</strong>“的 2×2 组合，本质是同一个格式化内核。</li>
+<li><strong>流（<code>FILE*</code>）</strong> 比 <strong>fd</strong> 多一层缓冲和状态；fd 只是”目标是谁”的编号。</li>
+<li>newlib 里三个标准流的缓冲是<strong>写死</strong>的：<code>stdin</code> 只读、<code>stdout</code> <strong>行缓冲</strong>、<code>stderr</code> <strong>无缓冲</strong>（实测 <code>__sinit</code>）。所以换行结尾的日志不用手动 <code>fflush</code>，而复位会丢掉缓冲区里没刷出的数据。</li>
+<li>MCU 上最容易踩的坑：<strong>newlib-nano 默认不支持 <code>%f</code><strong>、</strong>自定义流永远判不成 tty → 默认全缓冲</strong>。</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="1-四个格式化函数"><a href="#1-四个格式化函数" class="headerlink" title="1. 四个格式化函数"></a>1. 四个格式化函数</h1><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>目标流</th>
+<th>参数来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>printf</code></td>
+<td><strong>stdout（写死）</strong></td>
+<td>可变参数 <code>...</code></td>
+</tr>
+<tr>
+<td><code>vprintf</code></td>
+<td><strong>stdout（写死）</strong></td>
+<td><code>va_list</code></td>
+</tr>
+<tr>
+<td><code>fprintf</code></td>
+<td>你指定的 <code>FILE *</code></td>
+<td>可变参数 <code>...</code></td>
+</tr>
+<tr>
+<td><code>vfprintf</code></td>
+<td>你指定的 <code>FILE *</code></td>
+<td><code>va_list</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">                ...（直接给实参）        va_list（已打包的参数表）</span><br><span class="line">stdout          printf                   vprintf</span><br><span class="line">任意 FILE*      fprintf                  vfprintf</span><br></pre></td></tr></table></figure>
+
+<p>两条等价关系记住即可：</p>
+<ul>
+<li><code>printf(fmt, ...)</code> ≡ <code>fprintf(stdout, fmt, ...)</code></li>
+<li><code>vprintf(fmt, ap)</code> ≡ <code>vfprintf(stdout, fmt, ap)</code></li>
+</ul>
+<p><strong><code>v</code> 系列存在的唯一理由</strong>：C 语言没有任何语法能把一个 <code>va_list</code> 摊开成 <code>...</code>。所以在可变参数函数内部转发参数时（比如自己写日志库、包一层打印函数），只能用 <code>v*printf</code>。用 <code>printf(fmt)</code> 代替 <code>vprintf(fmt, ap)</code> 会丢掉全部参数，还会去读垃圾栈。</p>
+<p>⚠ <code>f</code> 前缀的含义在不同命名族里并不一致：</p>
+<table>
+<thead>
+<tr>
+<th>命名族</th>
+<th>不带 <code>f</code></th>
+<th>带 <code>f</code></th>
+<th><code>f</code> 的含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>fd 层 vs 流层</td>
+<td><code>open</code>&#x2F;<code>read</code>&#x2F;<code>write</code>&#x2F;<code>close</code></td>
+<td><code>fopen</code>&#x2F;<code>fread</code>&#x2F;<code>fwrite</code>&#x2F;<code>fclose</code></td>
+<td>有缓冲的 <strong>FILE 流层</strong></td>
+</tr>
+<tr>
+<td>目标流是否硬编码</td>
+<td><code>printf</code>&#x2F;<code>puts</code>&#x2F;<code>putchar</code></td>
+<td><code>fprintf</code>&#x2F;<code>fputs</code>&#x2F;<code>fputc</code></td>
+<td>必须<strong>显式传入流</strong></td>
+</tr>
+<tr>
+<td>历史例外</td>
+<td><code>putc</code>&#x2F;<code>getc</code>（也收 <code>FILE*</code>）</td>
+<td></td>
+<td><strong>不表示参数差别</strong>，只表示”允许是宏”</td>
+</tr>
+</tbody></table>
+<h1 id="2-流（stream）、FILE-与-fd"><a href="#2-流（stream）、FILE-与-fd" class="headerlink" title="2. 流（stream）、FILE* 与 fd"></a>2. 流（stream）、<code>FILE*</code> 与 fd</h1><h2 id="2-1-什么是-fd"><a href="#2-1-什么是-fd" class="headerlink" title="2.1 什么是 fd"></a>2.1 什么是 fd</h2><p><strong>fd &#x3D; file descriptor（文件描述符）</strong>：一个小非负整数，代表”这个程序里已打开的一个 I&#x2F;O 目标”。</p>
+<ul>
+<li>三个值被固定占用：<code>0 = stdin</code>、<code>1 = stdout</code>、<code>2 = stderr</code>——程序一启动它们就算”已经打开”。</li>
+<li>之后 <code>open()</code> 新建的从 <code>3</code> 开始依次分配；<code>close()</code> 之后号码会被回收复用。</li>
+<li>它是<strong>本程序内的索引</strong>，不是全局资源编号：同一个数字在不同程序里含义不同。Linux 上 fd 指向内核里的 file 对象；<strong>裸机上没有内核</strong>，fd 的含义完全由你实现的 <code>_write</code>&#x2F;<code>_read</code> 决定——所以你可以像很多工程那样干脆忽略它（这也是为什么 <code>debug.c</code> 里 <code>_write(int fd, ...)</code> 的 <code>fd</code> 参数从头到尾没被用过）。</li>
+<li>fd 本身<strong>没有缓冲、没有格式、没有状态</strong>，它只回答”目标是谁”。</li>
+<li>底层 syscall 的签名一眼可辨：<code>_write(int fd, char *buf, int size)</code>、<code>_read(int fd, char *buf, int size)</code>。</li>
+</ul>
+<h2 id="2-2-什么是-FILE"><a href="#2-2-什么是-FILE" class="headerlink" title="2.2 什么是 FILE*"></a>2.2 什么是 <code>FILE*</code></h2><p><code>FILE</code> 是 C 标准库里的一个<strong>结构体类型</strong>，<code>FILE *</code> 就是指向它的指针——<code>stdout</code>、<code>stderr</code>、<code>fopen()</code> 的返回值、日志库里的 <code>ev-&gt;udata</code> 都是 <code>FILE *</code>。</p>
+<p><strong>流（stream）&#x3D; C 标准库对”一串按顺序进出的字节”的抽象</strong>，而 <code>FILE</code> 就是这个抽象在内存里的实体：它把<strong>一个裸 fd</strong> 包装成”带缓冲和状态的通道对象”。</p>
+<p>标准故意把 <code>FILE</code> 定义为<strong>不透明类型</strong>（只该通过 stdio 函数去操作它，不该直接碰字段）。newlib 把头文件里的结构体暴露了出来，字段大致是这些：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_bf</code> &#x2F; <code>_p</code></td>
+<td>缓冲区本体 + 当前读写位置</td>
+</tr>
+<tr>
+<td><code>_w</code> &#x2F; <code>_r</code></td>
+<td>剩余可写 &#x2F; 可读空间（快路径判断靠它）</td>
+</tr>
+<tr>
+<td><code>_flags</code></td>
+<td>状态：读&#x2F;写、错误、EOF、行缓冲&#x2F;无缓冲、宽字符方向</td>
+</tr>
+<tr>
+<td><code>_file</code></td>
+<td>底层 fd（<code>-1</code> 表示不是 fd，比如内存流）</td>
+</tr>
+<tr>
+<td><code>_lbfsize</code></td>
+<td>行缓冲阈值（0 或 <code>-_bf._size</code>）</td>
+</tr>
+</tbody></table>
+<p>两个实用细节：</p>
+<ul>
+<li>标准流在 newlib 里其实是<strong>宏</strong>：<code>#define stdout (_REENT-&gt;_stdout)</code>，含义是”当前重入上下文里的那个 <code>FILE *</code>“；多线程&#x2F;多上下文用它来隔离状态。</li>
+<li>从 <code>FILE *</code> 取回 fd 有现成口子：POSIX 的 <code>fileno(fp)</code>、newlib 内部的 <code>__sfileno(p)</code>（展开就是 <code>(p)-&gt;_file</code>）；反过来 <code>fdopen(fd, &quot;w&quot;)</code> 是拿 fd 造一个流。<strong>流不一定有 fd</strong>（内存流 <code>_file = -1</code>，字节不进 <code>_write</code>）。</li>
+</ul>
+<h2 id="2-3-三个标准流的对应关系"><a href="#2-3-三个标准流的对应关系" class="headerlink" title="2.3 三个标准流的对应关系"></a>2.3 三个标准流的对应关系</h2><p><code>0</code>&#x2F;<code>1</code>&#x2F;<code>2</code> 这三个 fd 和三个 <code>FILE *</code> 是一一对应的，前面所有讨论最后都落在这张表上：</p>
+<table>
+<thead>
+<tr>
+<th>fd</th>
+<th>流（<code>FILE *</code>）</th>
+<th>方向</th>
+<th>newlib 初始缓冲</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0</code></td>
+<td><code>stdin</code></td>
+<td>只读</td>
+<td>默认（由 <code>__smakebuf_r</code> 决定）</td>
+<td>输入流，<strong>不能当输出目标</strong></td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td><code>stdout</code></td>
+<td>只写</td>
+<td><strong>行缓冲</strong>（<code>__SWR | __SLBF</code>）</td>
+<td><code>printf</code>&#x2F;<code>puts</code>&#x2F;<code>putchar</code> 的默认目标，遇 <code>\n</code> 自动刷</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td><code>stderr</code></td>
+<td>只写</td>
+<td><strong>无缓冲</strong>（<code>__SRW | __SNBF</code>）</td>
+<td>写进去立刻出去，日志常选它</td>
+</tr>
+</tbody></table>
+<p>这张”初始缓冲”不是猜的：newlib 的 <code>__sinit</code> 会给三个流分别调用 <code>std()</code>，反汇编里三次调用的 flags 参数是 <strong>4 &#x2F; 9 &#x2F; 18</strong>——</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">stdin  : 4  = __SRD               → 只读</span><br><span class="line">stdout : 9  = __SWR | __SLBF      → 只写 + 行缓冲</span><br><span class="line">stderr : 18 = __SRW | __SNBF      → 读写 + 无缓冲</span><br></pre></td></tr></table></figure>
+
+<p>（标志位见 newlib <code>stdio.h</code>：<code>__SLBF 0x1</code> 行缓冲、<code>__SNBF 0x2</code> 无缓冲、<code>__SRD 0x4</code>、<code>__SWR 0x8</code>、<code>__SRW 0x10</code>。）</p>
+<p>newlib 启动时只建这三个流（<code>__sf[3]</code>；<code>stdin</code>&#x2F;<code>stdout</code>&#x2F;<code>stderr</code> 就是 <code>_REENT</code> 里那三个 <code>FILE *</code>），之后想要别的流得自己 <code>fopen</code>&#x2F;<code>fdopen</code>，对应的 fd 从 <code>3</code> 开始分配。</p>
+<h2 id="2-4-分工：谁负责什么"><a href="#2-4-分工：谁负责什么" class="headerlink" title="2.4 分工：谁负责什么"></a>2.4 分工：谁负责什么</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>流（<code>FILE *</code>）</th>
+<th>fd（整数）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>层</td>
+<td>高层，带缓冲与状态</td>
+<td>底层，裸字节</td>
+</tr>
+<tr>
+<td>API</td>
+<td><code>printf</code>&#x2F;<code>fwrite</code>&#x2F;<code>fopen</code></td>
+<td><code>_write</code>&#x2F;<code>read</code>&#x2F;<code>open</code></td>
+</tr>
+<tr>
+<td>一次写多少</td>
+<td>你说多少就多少，库自己分块</td>
+<td>给多少字节写多少</td>
+</tr>
+<tr>
+<td>额外能力</td>
+<td>格式化、缓冲、错误标志、多流并存</td>
+<td>只有一个目标编号</td>
+</tr>
+</tbody></table>
+<p>标准要搞两套抽象，就是因为这两件事职责不同：**fd 负责”发到哪”，流负责”怎么高效地发、出错了怎么记、现在是读还是写”**。你写 <code>fprintf(fp, ...)</code> 是在流层操作；攒够缓冲后，newlib 才替你调 <code>_write(fp-&gt;_file, buf, n)</code> 落到 fd 层。</p>
+<h1 id="3-从-printf-到串口的完整调用链"><a href="#3-从-printf-到串口的完整调用链" class="headerlink" title="3. 从 printf 到串口的完整调用链"></a>3. 从 printf 到串口的完整调用链</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">printf(&quot;x=%d&quot;, 5)</span><br><span class="line"> └─ _vfprintf_r                     把结果按格式写进 FILE 的缓冲</span><br><span class="line">     └─ __sfvwrite_r / __swbuf_r     缓冲满、行缓冲遇 \n、或 fflush 时才继续</span><br><span class="line">         └─ _write_r(reent, fp-&gt;_file, buf, n)   带 fd 的 syscall 入口</span><br><span class="line">             └─ _write(fd, buf, size)            ← 你实现它，落到 UART</span><br></pre></td></tr></table></figure>
+
+<p>这一路的三个关键事实：</p>
+<ol>
+<li><code>puts</code> 之类的函数<strong>不经过</strong> <code>fputc</code>。实测 newlib-nano 的 <code>_puts_r</code> 只调用 <code>__sinit</code>、<code>__swsetup_r</code>、<code>__swbuf_r</code>。</li>
+<li>不实现 <code>_write</code> 会落到 libnosys 的空桩：反汇编 <code>libnosys.a(write.o)</code> 只有两条指令——写 <code>errno = 88</code>(ENOSYS)、<code>return -1</code>，一个字节都发不出去。</li>
+<li>你实现了 <code>_write</code>，libnosys 的 <code>write.o</code> <strong>根本不会被抽出来</strong>。这是”静态库成员按需提取”，不是弱符号覆盖：链接产物 map 里 <code>_write</code> 来自工程自己的 <code>debug.o</code>，libnosys 只被抽了 <code>close/fstat/isatty/lseek/read</code>。</li>
+</ol>
+<h1 id="4-各库的-retarget-点"><a href="#4-各库的-retarget-点" class="headerlink" title="4. 各库的 retarget 点"></a>4. 各库的 retarget 点</h1><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>约定符号</th>
+<th>粒度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GCC + newlib（RISC-V &#x2F; ARM）</td>
+<td>**<code>_write</code>**（另需 <code>_read</code>&#x2F;<code>_sbrk</code> 等）</td>
+<td>整块 <code>buf/size</code></td>
+<td>位置最低，所有 stdio 输出都汇聚到此，<strong>可以 DMA</strong></td>
+</tr>
+<tr>
+<td>Keil MDK + <strong>microlib</strong></td>
+<td>**<code>fputc</code>**（输入侧配 <code>fgetc</code>&#x2F;<code>__backspace</code>）</td>
+<td>1 字符</td>
+<td>microlib 没有 POSIX 层，成员表里没有 <code>write.o</code></td>
+</tr>
+<tr>
+<td>Keil Arm <strong>标准 C 库</strong></td>
+<td><code>_sys_write</code> &#x2F; <code>_sys_open</code> 家族</td>
+<td>整块</td>
+<td><code>fputc</code> 只能覆盖 stdout&#x2F;stderr 那条路</td>
+</tr>
+<tr>
+<td>IAR EWARM</td>
+<td><code>__write</code></td>
+<td>整块</td>
+<td>IAR 自家 DLib 约定</td>
+</tr>
+<tr>
+<td>ESP-IDF &#x2F; Linux 类</td>
+<td>注册 VFS 驱动 &#x2F; <code>write</code> syscall</td>
+<td>—</td>
+<td>有 OS 和文件系统</td>
+</tr>
+</tbody></table>
+<p>microlib 这一列是有实测依据的：把 Keil 里的 microlib（<code>ARMCC\lib\armlib\mc_p.l</code>、<code>ARMCLANG\lib\armlib\mc_*.l</code>）按成员拆开看符号引用，<code>fputs.o</code> &#x2F; <code>puts.o</code> &#x2F; <code>fwrite.o</code> &#x2F; <code>printf0.o</code> **全部引用 <code>fputc</code>**，而 <code>fputc.o</code> 自己不引用任何外部符号——它默认由半主机的内联 <code>SVC</code> 顶上，所以你重定义 <code>fputc</code> 是整条替换。</p>
+<p>也就是说：<strong>microlib 下接 <code>fputc</code> 基本能拦住所有走 stdout&#x2F;stderr 的输出</strong>（这跟 newlib 恰好相反，newlib 里重定义 <code>fputc</code> 拦不到 printf）。</p>
+<h1 id="5-putc-与-fputc"><a href="#5-putc-与-fputc" class="headerlink" title="5. putc 与 fputc"></a>5. putc 与 fputc</h1><p>标准里两者<strong>语义等价</strong>（<code>putc(c, stream)</code> 与 <code>fputc(c, stream)</code> 行为相同），区别只在”它是不是函数”：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>fputc</code></th>
+<th><code>putc</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标准地位</td>
+<td><strong>必须是函数</strong></td>
+<td>与 <code>fputc</code> 等价，但<strong>允许实现为宏</strong></td>
+</tr>
+<tr>
+<td>参数求值</td>
+<td>只求值一次</td>
+<td>宏版本可能多次求值 <code>stream</code> → <code>putc(c, *p++)</code> 属未定义行为</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>至少一次调用（库内部同样走快路径）</td>
+<td>宏&#x2F;内联版本可省掉这次调用</td>
+</tr>
+<tr>
+<td>可拦截</td>
+<td>一定能做 retarget 点、能取地址</td>
+<td>是宏就拦不到、不能取地址</td>
+</tr>
+</tbody></table>
+<p>所以 <code>putc</code> 是 <code>fputc</code> 的”<strong>可宏化替身</strong>“：库可以把最常见的情况摊平成”缓冲区还有空位就直接写指针、自增”，只有缓冲满等特殊情况才跳进函数。而 <code>putchar(c)</code> 就是 <code>putc(c, stdout)</code>。</p>
+<p>⚠ 在 newlib 里 <code>putc</code> 是函数还是宏<strong>由配置决定</strong>：<code>stdio.h</code> 中 <code>#ifndef __CUSTOM_FILE_IO__</code> 那一段里，<code>__SINGLE_THREAD__</code> 下会 <code>#define putc(_c,_p) __sputc_r(...)</code>；而如果构建定义了 <code>__CUSTOM_FILE_IO__</code>，整段被预编译掉，<code>putc</code> 就留成普通函数。<strong>要 retarget，一律认准 <code>fputc</code>。</strong></p>
+<h1 id="6-缓冲、行缓冲与-tty"><a href="#6-缓冲、行缓冲与-tty" class="headerlink" title="6. 缓冲、行缓冲与 tty"></a>6. 缓冲、行缓冲与 tty</h1><h2 id="6-1-三个标准流的缓冲是写死的"><a href="#6-1-三个标准流的缓冲是写死的" class="headerlink" title="6.1 三个标准流的缓冲是写死的"></a>6.1 三个标准流的缓冲是写死的</h2><p><code>stdin</code> &#x2F; <code>stdout</code> &#x2F; <code>stderr</code> 的缓冲策略<strong>不靠运行时探测</strong>，而是 <code>__sinit</code> 初始化时就定好了（见 2.3 的 flags：4 &#x2F; 9 &#x2F; 18）：</p>
+<ul>
+<li><code>stdout</code> &#x3D; <strong>行缓冲</strong>：数据里出现 <code>\n</code> 就把这一行刷出去。</li>
+<li><code>stderr</code> &#x3D; <strong>无缓冲</strong>：每个字节都直接落到 <code>_write</code>。</li>
+</ul>
+<p>行缓冲在 newlib 的批量写路径里是<strong>真的生效</strong>的：反汇编 <code>__sfvwrite_r</code>（<code>printf</code>&#x2F;<code>puts</code> 的公共出口）能看到 <code>andi a5,a5,1</code>（测 <code>__SLBF</code>）→ <code>memchr</code> 在待写数据里找 <code>\n</code> → 找到就调 <code>_fflush_r</code> 刷出。</p>
+<p>所以”日志写 <code>stderr</code> 立刻能看见、改成 <code>printf</code>（<code>stdout</code>）就得加 <code>fflush</code>“这个说法<strong>并不成立</strong>——只要每条日志以 <code>\n</code> 结尾，stdout 也会逐行刷出。</p>
+<h2 id="6-2-什么是-tty，stdio-为什么关心它"><a href="#6-2-什么是-tty，stdio-为什么关心它" class="headerlink" title="6.2 什么是 tty，stdio 为什么关心它"></a>6.2 什么是 tty，stdio 为什么关心它</h2><p><strong>tty &#x3D; teletypewriter（电传打字机）</strong>，一个历史遗留缩写，今天指<strong>终端</strong>：人机交互的字符设备——键盘+屏幕的终端、串口控制台都算。</p>
+<p>判断一个 fd 是不是终端，POSIX 给的接口是 <code>isatty(fd)</code>；newlib 内部还会先用 <code>_fstat(fd, &amp;st)</code> 看 <code>S_ISCHR(st.st_mode)</code>（是不是字符设备），把结果叫 <code>couldbetty</code>（”可能是个终端”）。</p>
+<p>stdio 之所以关心它，是因为<strong>两种场景的优化目标相反</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>交互式终端：<strong>立刻可见</strong>比吞吐重要</td>
+<td>行缓冲（遇 <code>\n</code> 就刷）</td>
+</tr>
+<tr>
+<td>文件&#x2F;管道&#x2F;裸设备：<strong>吞吐</strong>优先</td>
+<td>全缓冲（攒满一块再发）</td>
+</tr>
+</tbody></table>
+<p>具体决策发生在 <code>__smakebuf_r</code>（第一次写时调用），实测调用序列是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">__swhatbuf_r   →  内部 _fstat，算出 couldbetty 和缓冲区大小</span><br><span class="line">_malloc_r      →  分配缓冲区（成功则置 __SMBF）</span><br><span class="line">_isatty_r      →  只有 couldbetty &amp;&amp; isatty() 都为真，才置 __SLBF（行缓冲）</span><br><span class="line">失败分支        →  andi a5,a5,-4 / ori a5,a5,2 置 __SNBF（退化成无缓冲）</span><br></pre></td></tr></table></figure>
+
+<p><strong>裸机上没有 tty 这个概念</strong>：libnosys 的 <code>_isatty</code> 固定返回 0、<code>_fstat</code> 直接报错，于是 <code>couldbetty = 0</code>。这意味着：</p>
+<ul>
+<li>你自己 <code>fopen</code>&#x2F;<code>fdopen</code> 出来的流，<strong>永远判不成终端</strong>，默认走全缓冲；</li>
+<li>但 <code>stdout</code>&#x2F;<code>stderr</code> 不受影响——它们的标志位 <code>__sinit</code> 已经写死了；</li>
+<li>想给自定义流强行加行缓冲，只能手动 <code>setvbuf(fp, NULL, _IOLBF, size)</code>。</li>
+</ul>
+<h2 id="6-3-fflush-什么时候才真的必要"><a href="#6-3-fflush-什么时候才真的必要" class="headerlink" title="6.3 fflush 什么时候才真的必要"></a>6.3 <code>fflush</code> 什么时候才真的必要</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>要不要 <code>fflush</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stdout</code> 上输出以 <code>\n</code> 结尾</td>
+<td><strong>不用</strong>，行缓冲会替你刷</td>
+</tr>
+<tr>
+<td>写 <code>stderr</code></td>
+<td><strong>不用</strong>，本来就无缓冲（此时 <code>fflush</code> 基本是空操作）</td>
+</tr>
+<tr>
+<td>输出<strong>不含换行</strong>（进度条、半行状态）</td>
+<td><strong>必须</strong>，否则要等缓冲满才出现</td>
+</tr>
+<tr>
+<td>用 <code>setvbuf</code> 改成全缓冲&#x2F;自定义缓冲</td>
+<td><strong>必须</strong></td>
+</tr>
+<tr>
+<td>即将复位、进临界区、或依赖”已经发出去”</td>
+<td><strong>建议</strong>，保证缓冲区没有残留</td>
+</tr>
+</tbody></table>
+<p>一句话：<code>fflush</code> 不是”printf 必须配的仪式”，而是”在行缓冲不管用的时候手动推一把”。多写一次无害，但<strong>误以为必须</strong>或<strong>误以为不需要</strong>都会踩坑。</p>
+<h1 id="7-MCU-上容易踩的坑"><a href="#7-MCU-上容易踩的坑" class="headerlink" title="7. MCU 上容易踩的坑"></a>7. MCU 上容易踩的坑</h1><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>%f</code> 不可用</td>
+<td>newlib-nano 默认裁掉浮点格式化（工程配置里 <code>use_float_with_nano_printf: false</code>），要打得开这个开关</td>
+</tr>
+<tr>
+<td>缓冲要堆</td>
+<td>行缓冲&#x2F;全缓冲都要 <code>_malloc_r</code> 一块缓冲（<code>__SMBF</code>），堆来自 <code>_sbrk</code>；malloc 失败会<strong>退化成无缓冲</strong>（实测 <code>__smakebuf_r</code> 置 <code>__SNBF</code>），行为随之变化</td>
+</tr>
+<tr>
+<td>复位丢数据</td>
+<td>缓冲区里没刷出的内容会随复位一起消失；日志若要求”断在哪儿都知道”，就别依赖缓冲</td>
+</tr>
+<tr>
+<td>半主机</td>
+<td>Keil 下不 retarget 时输出走 semihosting（内联 <code>SVC</code>），依赖调试器，脱机运行会卡住甚至异常</td>
+</tr>
+<tr>
+<td><code>localtime()</code> 是假时间</td>
+<td>没有 RTC &#x2F; 没实现 <code>_gettimeofday</code> 时，newlib 的 <code>time()</code> 返回 -1，<code>localtime()</code> 得到 <code>1969-12-31 23:59:59</code>，永远不变</td>
+</tr>
+<tr>
+<td>逐字节阻塞发送</td>
+<td><code>_write</code> 已经拿到整块 <code>buf/size</code>，却常被写成”逐字节等 <code>USART_FLAG_TC</code>“，白白浪费了做 DMA 的机会</td>
+</tr>
+</tbody></table>
+<h1 id="8-速查"><a href="#8-速查" class="headerlink" title="8. 速查"></a>8. 速查</h1><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>答案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>printf 最后落到哪？</td>
+<td>由库决定：newlib <code>_write</code>、microlib <code>fputc</code>、IAR <code>__write</code>、Arm 标准库 <code>_sys_*</code></td>
+</tr>
+<tr>
+<td>日志里要不要 <code>fflush</code>？</td>
+<td>newlib 里 <code>stdout</code> 默认<strong>行缓冲</strong>（遇 <code>\n</code> 刷）、<code>stderr</code> <strong>无缓冲</strong>；换行结尾的日志不用手动刷，无换行或改过 <code>setvbuf</code> 才需要</td>
+</tr>
+<tr>
+<td>为什么有 vprintf？</td>
+<td>只有 <code>v*printf</code> 能消费 <code>va_list</code>，转发可变参数没有别的办法</td>
+</tr>
+<tr>
+<td>为什么有 putc？</td>
+<td>给库一个”可以宏化&#x2F;内联”的口子；<code>fputc</code> 则保证存在函数实体</td>
+</tr>
+<tr>
+<td>tty 跟 printf 什么关系？</td>
+<td>决定一个流拿到行缓冲还是全缓冲；裸机上没有 tty，自定义流恒为全缓冲</td>
+</tr>
+<tr>
+<td>拦截要覆盖全部输出？</td>
+<td>先用 <code>fputc</code>&#x2F;<code>_write</code> 这类最低点，但<strong>不走 stdio 的输出永远拦不到</strong></td>
+</tr>
+</tbody></table>
+<h1 id="附录：四个函数接口原型与用法"><a href="#附录：四个函数接口原型与用法" class="headerlink" title="附录：四个函数接口原型与用法"></a>附录：四个函数接口原型与用法</h1><p>原型（取自 newlib <code>stdio.h</code>，括号里是 C 标准写法）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* #include &lt;stdio.h&gt; */</span></span><br><span class="line"><span class="type">int</span>     <span class="title function_">printf</span> <span class="params">(<span class="type">const</span> <span class="type">char</span> *__restrict, ...)</span>;                       <span class="comment">/* printf(const char *restrict format, ...) */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* #include &lt;stdio.h&gt;  +  &lt;stdarg.h&gt; */</span></span><br><span class="line"><span class="type">int</span>    <span class="title function_">vprintf</span> <span class="params">(<span class="type">const</span> <span class="type">char</span> *, __VALIST)</span>;                            <span class="comment">/* vprintf(const char *restrict format, va_list arg) */</span></span><br><span class="line"><span class="type">int</span>   <span class="title function_">fprintf</span> <span class="params">(FILE *__restrict, <span class="type">const</span> <span class="type">char</span> *__restrict, ...)</span>;      <span class="comment">/* fprintf(FILE *restrict stream, const char *restrict format, ...) */</span></span><br><span class="line"><span class="type">int</span>  <span class="title function_">vfprintf</span> <span class="params">(FILE *__restrict, <span class="type">const</span> <span class="type">char</span> *__restrict, __VALIST)</span>;  <span class="comment">/* vfprintf(FILE *restrict stream, const char *restrict format, va_list arg) */</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>__VALIST</code> 就是 <code>va_list</code>（newlib 里定义为 <code>__gnuc_va_list</code>，RISC-V&#x2F;ARM 上通常就是 <code>void *</code>）。</li>
+<li><code>__restrict</code> &#x2F; <code>restrict</code> 只是给编译器的优化提示（这两个指针不重叠），语义上可以当没有。</li>
+</ul>
+<p>返回值：成功返回<strong>写出的字符数</strong>，出错返回<strong>负值</strong>。</p>
+<p>调用示例：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;x=%d\n&quot;</span>, <span class="number">5</span>);                  <span class="comment">/* ≡ fprintf(stdout, &quot;x=%d\n&quot;, 5) */</span></span><br><span class="line"><span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;err=%d\n&quot;</span>, e);       <span class="comment">/* 指定流：日志常写 stderr */</span></span><br><span class="line"><span class="built_in">fprintf</span>(fp, <span class="string">&quot;%s:%d\n&quot;</span>, name, line);   <span class="comment">/* fp 来自 fopen()，或 log_add_fp() 收下的那个 FILE* */</span></span><br></pre></td></tr></table></figure>
+
+<p><code>v</code> 系列<strong>不能直接调用</strong>（你手上没有现成的 <code>va_list</code>），它只在<strong>可变参数函数内部</strong>用来转发。两个 <code>v</code> 函数的关系是 <code>vprintf(fmt, ap)</code> ≡ <code>vfprintf(stdout, fmt, ap)</code>——<strong>唯一区别就是流</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdarg.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 只写 stdout：vprintf */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">my_log</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *fmt, ...)</span>              <span class="comment">/* ← 可变参数在这一层 */</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, fmt);                         <span class="comment">/* 把 &quot;...&quot; 打包成 ap */</span></span><br><span class="line">    <span class="built_in">vprintf</span>(fmt, ap);                          <span class="comment">/* 这里只能用 v 版 */</span></span><br><span class="line">    va_end(ap);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 想指定流（stderr、文件、或日志库那个 FILE*）：vfprintf */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">log_to</span><span class="params">(FILE *fp, <span class="type">const</span> <span class="type">char</span> *fmt, ...)</span>    <span class="comment">/* 比 my_log 多一个流参数 */</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, fmt);</span><br><span class="line">    <span class="built_in">vfprintf</span>(fp, fmt, ap);                     <span class="comment">/* 唯一的区别：多传了 fp */</span></span><br><span class="line">    va_end(ap);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用：<code>my_log(&quot;x=%d\n&quot;, 5);</code>、<code>log_to(stderr, &quot;err=%d\n&quot;, e);</code>、<code>log_to(fp, &quot;%s\n&quot;, s);</code></p>
+<h2 id="两个-wrapper-的完整用法"><a href="#两个-wrapper-的完整用法" class="headerlink" title="两个 wrapper 的完整用法"></a>两个 wrapper 的完整用法</h2><p><strong>1) 声明放头文件</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* my_log.h */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> MY_LOG_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MY_LOG_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">my_log</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *fmt, ...)</span>;              <span class="comment">/* 写 stdout */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">log_to</span><span class="params">(FILE *fp, <span class="type">const</span> <span class="type">char</span> *fmt, ...)</span>;    <span class="comment">/* 写指定流 */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>2) 实现（固定三步：打包 → 交给 <code>v</code> 版消费 → 收尾）</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdarg.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;my_log.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">my_log</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, fmt);      <span class="comment">/* 1) 把 &quot;...&quot; 打包成 ap */</span></span><br><span class="line">    <span class="built_in">vprintf</span>(fmt, ap);       <span class="comment">/* 2) 交给 v 版格式化并输出 */</span></span><br><span class="line">    va_end(ap);             <span class="comment">/* 3) 收尾，必须与 va_start 配对 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">log_to</span><span class="params">(FILE *fp, <span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    va_start(ap, fmt);</span><br><span class="line">    <span class="built_in">vfprintf</span>(fp, fmt, ap);  <span class="comment">/* 与 my_log 唯一的不同：输出到 fp */</span></span><br><span class="line">    va_end(ap);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>3) 调用</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">my_log(<span class="string">&quot;boot ok, sysclk=%lu\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)SystemCoreClock);</span><br><span class="line">log_to(<span class="built_in">stderr</span>, <span class="string">&quot;i2c timeout, reg=0x%02X\n&quot;</span>, reg);</span><br><span class="line">log_to(fp, <span class="string">&quot;%s:%d\n&quot;</span>, name, line);</span><br></pre></td></tr></table></figure>
+
+<p><strong>4) 常见增强</strong></p>
+<p>想加前缀 &#x2F; 等级，<strong>先打前缀、再转发正文</strong>，别把前缀塞进格式串（否则前缀会被当成用户格式的一部分）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">my_log_tag</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *tag, <span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    <span class="type">int</span> n;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[%s] &quot;</span>, tag);           <span class="comment">/* 前缀先出去 */</span></span><br><span class="line">    va_start(ap, fmt);</span><br><span class="line">    n = <span class="built_in">vprintf</span>(fmt, ap);           <span class="comment">/* 正文，顺便拿到返回值 */</span></span><br><span class="line">    va_end(ap);</span><br><span class="line">    <span class="keyword">return</span> n;                       <span class="comment">/* 实际写出的字符数，出错为负 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>多任务 &#x2F; 中断里打印要加锁，<strong>临界区包在 <code>va_start</code>..<code>va_end</code> 外层</strong>（原子性来自锁，不是来自 <code>va_list</code>）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">my_log_locked</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">    va_list ap;</span><br><span class="line">    lock_acquire();</span><br><span class="line">    va_start(ap, fmt);</span><br><span class="line">    <span class="built_in">vprintf</span>(fmt, ap);</span><br><span class="line">    va_end(ap);</span><br><span class="line">    lock_release();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这其实就是日志库内部的样子：<code>log.c</code> 的 <code>stdout_callback</code> 拿到的 <code>ev-&gt;fmt</code> &#x2F; <code>ev-&gt;ap</code>，最终就是一次 <code>vprintf(ev-&gt;fmt, ev-&gt;ap)</code>。</p>
+<p>使用要点：</p>
+<ul>
+<li><code>va_list</code> <strong>只能遍历一次</strong>，遍历完即失效；要再输出一遍必须重新 <code>va_start</code>（log.c 里就是每个消费方各自 <code>va_start</code>），或用 <code>va_copy</code> 复制一份。</li>
+<li><code>v</code> 函数内部**不要再 <code>va_start</code>**——传进去的已经是打包好的列表。</li>
+<li>参数类型必须与格式串严格对应：<code>%s</code>→<code>char *</code>、<code>%c</code>→<code>int</code>、<code>size_t</code> 用 <code>%zu</code>；裸机上 <code>%f</code> 在 newlib-nano 里默认不可用（见第 7 节）。</li>
+<li><code>va_end</code> 必须在<strong>每条返回路径</strong>上都调到，提前 <code>return</code> 就是漏掉它。</li>
+<li><strong>只包一层</strong>。wrapper 套 wrapper 只是多一次栈帧和一次 <code>va_start</code>，第二层转发的还是同一个 <code>ap</code>，不如在第一层直接消费。</li>
+</ul>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%9B%9B%E4%B8%AA%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%87%BD%E6%95%B0"><span class="toc-number">2.</span> <span class="toc-text">1. 四个格式化函数</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E6%B5%81%EF%BC%88stream%EF%BC%89%E3%80%81FILE-%E4%B8%8E-fd"><span class="toc-number">3.</span> <span class="toc-text">2. 流（stream）、FILE* 与 fd</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E4%BB%80%E4%B9%88%E6%98%AF-fd"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 什么是 fd</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-%E4%BB%80%E4%B9%88%E6%98%AF-FILE"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 什么是 FILE*</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-%E4%B8%89%E4%B8%AA%E6%A0%87%E5%87%86%E6%B5%81%E7%9A%84%E5%AF%B9%E5%BA%94%E5%85%B3%E7%B3%BB"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 三个标准流的对应关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-%E5%88%86%E5%B7%A5%EF%BC%9A%E8%B0%81%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="toc-number">3.4.</span> <span class="toc-text">2.4 分工：谁负责什么</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E4%BB%8E-printf-%E5%88%B0%E4%B8%B2%E5%8F%A3%E7%9A%84%E5%AE%8C%E6%95%B4%E8%B0%83%E7%94%A8%E9%93%BE"><span class="toc-number">4.</span> <span class="toc-text">3. 从 printf 到串口的完整调用链</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E5%90%84%E5%BA%93%E7%9A%84-retarget-%E7%82%B9"><span class="toc-number">5.</span> <span class="toc-text">4. 各库的 retarget 点</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#5-putc-%E4%B8%8E-fputc"><span class="toc-number">6.</span> <span class="toc-text">5. putc 与 fputc</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#6-%E7%BC%93%E5%86%B2%E3%80%81%E8%A1%8C%E7%BC%93%E5%86%B2%E4%B8%8E-tty"><span class="toc-number">7.</span> <span class="toc-text">6. 缓冲、行缓冲与 tty</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1-%E4%B8%89%E4%B8%AA%E6%A0%87%E5%87%86%E6%B5%81%E7%9A%84%E7%BC%93%E5%86%B2%E6%98%AF%E5%86%99%E6%AD%BB%E7%9A%84"><span class="toc-number">7.1.</span> <span class="toc-text">6.1 三个标准流的缓冲是写死的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-2-%E4%BB%80%E4%B9%88%E6%98%AF-tty%EF%BC%8Cstdio-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%85%B3%E5%BF%83%E5%AE%83"><span class="toc-number">7.2.</span> <span class="toc-text">6.2 什么是 tty，stdio 为什么关心它</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-3-fflush-%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E6%89%8D%E7%9C%9F%E7%9A%84%E5%BF%85%E8%A6%81"><span class="toc-number">7.3.</span> <span class="toc-text">6.3 fflush 什么时候才真的必要</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#7-MCU-%E4%B8%8A%E5%AE%B9%E6%98%93%E8%B8%A9%E7%9A%84%E5%9D%91"><span class="toc-number">8.</span> <span class="toc-text">7. MCU 上容易踩的坑</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#8-%E9%80%9F%E6%9F%A5"><span class="toc-number">9.</span> <span class="toc-text">8. 速查</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95%EF%BC%9A%E5%9B%9B%E4%B8%AA%E5%87%BD%E6%95%B0%E6%8E%A5%E5%8F%A3%E5%8E%9F%E5%9E%8B%E4%B8%8E%E7%94%A8%E6%B3%95"><span class="toc-number">10.</span> <span class="toc-text">附录：四个函数接口原型与用法</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%A4%E4%B8%AA-wrapper-%E7%9A%84%E5%AE%8C%E6%95%B4%E7%94%A8%E6%B3%95"><span class="toc-number">10.1.</span> <span class="toc-text">两个 wrapper 的完整用法</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&text=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&is_video=false&description=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理&body=Check out this article: http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&title=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&name=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理&description=&lt;h1 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h1&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;printf&lt;/code&gt; 的&lt;strong&gt;最后一跳&lt;/strong&gt;是 libc 留给你的一个空符号，但填哪个符号&lt;strong&gt;由库决定&lt;/strong&gt;：newlib 是 &lt;code&gt;_write&lt;/code&gt;，microlib 是 &lt;code&gt;fputc&lt;/code&gt;，Arm 标准 C 库是 &lt;code&gt;_sys_*&lt;/code&gt;，IAR 是 &lt;code&gt;__write&lt;/code&gt;。跨库没有统一的约定。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;printf&lt;/code&gt; &amp;#x2F; &lt;code&gt;vprintf&lt;/code&gt; &amp;#x2F; &lt;code&gt;fprintf&lt;/code&gt; &amp;#x2F; &lt;code&gt;vfprintf&lt;/code&gt; 只是”&lt;strong&gt;目标流 × 参数来源&lt;/strong&gt;“的 2×2 组合，本质是同一个格式化内核。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;流（&lt;code&gt;FILE*&lt;/code&gt;）&lt;/strong&gt; 比 &lt;strong&gt;fd&lt;/strong&gt; 多一层缓冲和状态；fd 只是”目标是谁”的编号。&lt;/li&gt;
+&lt;li&gt;newlib 里三个标准流的缓冲是&lt;strong&gt;写死&lt;/strong&gt;的：&lt;code&gt;stdin&lt;/code&gt; 只读、&lt;code&gt;stdout&lt;/code&gt; &lt;strong&gt;行缓冲&lt;/strong&gt;、&lt;code&gt;stderr&lt;/code&gt; &lt;strong&gt;无缓冲&lt;/strong&gt;（实测 &lt;code&gt;__sinit&lt;/code&gt;）。所以换行结尾的日志不用手动 &lt;code&gt;fflush&lt;/code&gt;，而复位会丢掉缓冲区里没刷出的数据。&lt;/li&gt;
+&lt;li&gt;MCU 上最容易踩的坑：&lt;strong&gt;newlib-nano 默认不支持 &lt;code&gt;%f&lt;/code&gt;&lt;strong&gt;、&lt;/strong&gt;自定义流永远判不成 tty → 默认全缓冲&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/17/knowledge/embedded/printf-stdio-retarget/&t=printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
