@@ -1,0 +1,742 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读 | YJRQZ777</title><meta name="author" content="yjrqz777"><meta name="copyright" content="yjrqz777"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="以 CH32X035 工程的 Startup&#x2F;startup_ch32x035.S 为例：先补齐读汇编启动文件需要的知识（段指令、数字标签、.option、CSR、弱符号、中断属性），再把&quot;从复位到 main 再到中断返回&quot;的每一步和实测地址对上，最后给出各例程启动文件的差异与踩坑点。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读">
+<meta property="og:url" content="http://example.com/2026/09/18/knowledge/embedded/ch32x035-startup-flow/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="以 CH32X035 工程的 Startup&#x2F;startup_ch32x035.S 为例：先补齐读汇编启动文件需要的知识（段指令、数字标签、.option、CSR、弱符号、中断属性），再把&quot;从复位到 main 再到中断返回&quot;的每一步和实测地址对上，最后给出各例程启动文件的差异与踩坑点。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/76079782?v=4">
+<meta property="article:published_time" content="2026-09-18T06:20:00.000Z">
+<meta property="article:modified_time" content="2026-09-18T06:03:35.301Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="RISC-V">
+<meta property="article:tag" content="CH32X035">
+<meta property="article:tag" content="启动文件">
+<meta property="article:tag" content="startup">
+<meta property="article:tag" content="中断向量表">
+<meta property="article:tag" content="HPE">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://avatars.githubusercontent.com/u/76079782?v=4"><link rel="shortcut icon" href="/img/star.ico"><link rel="canonical" href="http://example.com/2026/09/18/knowledge/embedded/ch32x035-startup-flow/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-09-18 14:03:35'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="/css/font.css"><link rel="stylesheet" href="/css/custom.css"><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="YJRQZ777"><img class="site-icon" src="/img/tree.ico"/><span class="site-name">YJRQZ777</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/cactus-theme/"><i class="fa-fw fas fa-tags"></i><span> cactus主题</span></a></div><div class="menus_item"><a class="site-page" href="/picture/"><i class="fa-fw fas fa-folder-open"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 工具</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/ascii-generator/"><i class="fa-fw fa-solid fa-repeat"></i><span> Ascii</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://translator.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Translator</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://cf.yjrqz777.win"><i class="fa-fw fas fa-link"></i><span> Cfimage</span></a></li><li><a class="site-page child" href="/findyakult/"><i class="fa-fw fas fa-link"></i><span> Findyakult</span></a></li></ul></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-09-18T06:20:00.000Z" title="发表于 2026-09-18 14:20:00">2026-09-18</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-09-18T06:03:35.301Z" title="更新于 2026-09-18 14:03:35">2026-09-18</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>上电<strong>不是</strong>从 <code>main</code> 开始：硬件从 0x0 取指，第一条是 <code>.init</code> 里的 <code>j handle_reset</code>（实测 <code>j</code> 到 0x4c6），启动代码本体在 <code>.text</code> 里。</li>
+<li><code>handle_reset</code> 七步：gp → sp → 搬 <code>.data</code> → 清 <code>.bss</code> → 4 个 CSR → <code>SystemInit()</code> → <code>mepc = main; mret</code>。</li>
+<li><code>.vector</code> 是<strong>数据表不是代码</strong>：55 项 &#x2F; 0xdc 字节；未实现的中断全部指向同一个 2 字节自跳 <code>j .</code>（0x4c4）。</li>
+<li>进 <code>main</code> 用 <code>mret</code>，<strong>ra 未设置</strong>，所以 <code>main</code> 不能 return；ISR 依赖 <code>0x804 = 3</code> 打开的硬件栈 + <code>interrupt(&quot;WCH-Interrupt-fast&quot;)</code>。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="一、读这份-S-之前要用的知识"><a href="#一、读这份-S-之前要用的知识" class="headerlink" title="一、读这份 .S 之前要用的知识"></a>一、读这份 .S 之前要用的知识</h2><h3 id="1-1-一个启动文件里其实有三类内容"><a href="#1-1-一个启动文件里其实有三类内容" class="headerlink" title="1.1 一个启动文件里其实有三类内容"></a>1.1 一个启动文件里其实有三类内容</h3><table>
+<thead>
+<tr>
+<th>内容</th>
+<th>例子</th>
+<th>落到哪个段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>段指令&#x2F;伪指令</td>
+<td><code>.section</code>、<code>.align</code>、<code>.option</code>、<code>.word</code></td>
+<td>不产生代码，只影响布局</td>
+</tr>
+<tr>
+<td>数据表</td>
+<td><code>.word NMI_Handler</code> 等 55 行</td>
+<td><code>.vector</code></td>
+</tr>
+<tr>
+<td>指令</td>
+<td><code>j handle_reset</code>、<code>la sp, _eusrstack</code>、<code>csrw</code></td>
+<td><code>.init</code>、<code>.text.vector_handler</code>、<code>.text.handle_reset</code></td>
+</tr>
+</tbody></table>
+<p>汇编器把它们分别塞进不同段，再由链接脚本（<code>Ld/Link.ld</code>）排序定位。<strong>两份文件是同一件事的两半</strong>：<code>.S</code> 负责”顺序和语义”，<code>.ld</code> 负责”地址和符号”。</p>
+<h3 id="1-2-出现的指令速认"><a href="#1-2-出现的指令速认" class="headerlink" title="1.2 出现的指令速认"></a>1.2 出现的指令速认</h3><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>含义</th>
+<th>在本文件里的用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>j label</code></td>
+<td>无条件跳转（不保存返回地址）</td>
+<td><code>_start</code> 跳到 <code>handle_reset</code>；弱符号桩 <code>j 1b</code></td>
+</tr>
+<tr>
+<td><code>jal ra, func</code></td>
+<td>跳转并保存返回地址</td>
+<td><code>jal SystemInit</code></td>
+</tr>
+<tr>
+<td><code>la rd, sym</code></td>
+<td>取符号地址（<code>auipc</code> + <code>addi</code> 两条）</td>
+<td>取 gp&#x2F;sp&#x2F;<code>_data_lma</code> 等</td>
+</tr>
+<tr>
+<td><code>lui</code> &#x2F; <code>addi</code></td>
+<td>拼一个 32 位立即数&#x2F;地址</td>
+<td>配合 <code>la</code>，也被 <code>li</code> 展开</td>
+</tr>
+<tr>
+<td><code>li rd, imm</code></td>
+<td>装载小立即数</td>
+<td><code>li t0, 0x3</code></td>
+</tr>
+<tr>
+<td><code>lw</code> &#x2F; <code>sw</code></td>
+<td>读&#x2F;写内存</td>
+<td><code>.data</code> 搬运、<code>.bss</code> 清零</td>
+</tr>
+<tr>
+<td><code>bgeu</code> &#x2F; <code>bltu</code></td>
+<td>无符号比较跳转</td>
+<td>搬运与清零的循环条件</td>
+</tr>
+<tr>
+<td><code>csrw csr, rs</code></td>
+<td>写 CSR（Control and Status Register，控制状态寄存器）</td>
+<td><code>0xbc0</code>、<code>0x804</code>、<code>mstatus</code>、<code>mtvec</code>、<code>mepc</code></td>
+</tr>
+<tr>
+<td><code>mret</code></td>
+<td>从机器模式异常返回</td>
+<td>进 <code>main</code>；ISR 返回</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-数字标签-1-x2F-1b-x2F-2f"><a href="#1-3-数字标签-1-x2F-1b-x2F-2f" class="headerlink" title="1.3 数字标签 1: &#x2F; 1b &#x2F; 2f"></a>1.3 数字标签 <code>1:</code> &#x2F; <code>1b</code> &#x2F; <code>2f</code></h3><p><code>1:</code>、<code>2:</code> 是<strong>可重复使用的局部标签</strong>：<code>1b</code> &#x3D; 往回找最近的 <code>1:</code>，<code>2f</code> &#x3D; 往前找最近的 <code>2:</code>。所以这个文件里 <code>1:</code> 出现了 4 次、<code>2:</code> 出现了 4 次都不冲突——每段循环各用各的。这是汇编里避免起名字的惯用法。</p>
+<h3 id="1-4-option-三个"><a href="#1-4-option-三个" class="headerlink" title="1.4 .option 三个"></a>1.4 <code>.option</code> 三个</h3><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>作用</th>
+<th>为什么需要</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.option norelax</code> &#x2F; <code>.option pop</code></td>
+<td>关掉链接器”放松”优化</td>
+<td><code>la gp, __global_pointer$</code> 若被放松成 gp 相对寻址，就成了”用 gp 算 gp”的鸡生蛋问题，所以启动代码里必须先关掉</td>
+</tr>
+<tr>
+<td><code>.option norvc</code> &#x2F; <code>.option rvc</code></td>
+<td>关&#x2F;开压缩指令（RVC，RISC-V Compressed）</td>
+<td>向量表本来要求 4 字节步长；这里表项是 <code>.word</code>（天然 4 字节），<code>norvc</code> 是防止汇编器在该区间生成 2 字节指令破坏布局的保险</td>
+</tr>
+</tbody></table>
+<h3 id="1-5-align-1-在-RISC-V-是-2-的-1-次方"><a href="#1-5-align-1-在-RISC-V-是-2-的-1-次方" class="headerlink" title="1.5 .align 1 在 RISC-V 是 2 的 1 次方"></a>1.5 <code>.align 1</code> 在 RISC-V 是 2 的 1 次方</h3><p>RISC-V 汇编里 <code>.align n</code> 是 <strong>2^n 字节</strong>（和 ARM 的”字节数”语义不同）。证据：<code>objdump</code> 的段表里 <code>.init</code> 和 <code>.vector</code> 的对齐都是 <code>2**1</code>，即 2 字节，正好对应源码里的 <code>.align 1</code>——为支持 RVC 的半字对齐。ARM 思维下把 <code>.align 1</code> 当成 1 字节，或者把 <code>.align 4</code> 当成 4 字节，都会看错。</p>
+<h3 id="1-6-这份文件用到的-CSR"><a href="#1-6-这份文件用到的-CSR" class="headerlink" title="1.6 这份文件用到的 CSR"></a>1.6 这份文件用到的 CSR</h3><table>
+<thead>
+<tr>
+<th>CSR</th>
+<th>地址</th>
+<th>标准还是私有</th>
+<th>本文件写入值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mstatus</code></td>
+<td>0x300</td>
+<td>RISC-V 标准</td>
+<td><code>0x88</code></td>
+</tr>
+<tr>
+<td><code>mtvec</code></td>
+<td>0x305</td>
+<td>RISC-V 标准</td>
+<td><code>_vector_base | 3</code></td>
+</tr>
+<tr>
+<td><code>mepc</code></td>
+<td>0x341</td>
+<td>RISC-V 标准</td>
+<td><code>main</code> 的地址</td>
+</tr>
+<tr>
+<td>—</td>
+<td>0xbc0</td>
+<td>WCH 私有</td>
+<td><code>0x1f</code></td>
+</tr>
+<tr>
+<td>—</td>
+<td>0x804</td>
+<td>WCH 私有</td>
+<td><code>0x3</code></td>
+</tr>
+</tbody></table>
+<p>⚠ 还有两个容易混的近亲，都不在本文件里：</p>
+<ul>
+<li><strong>0x800</strong>：WCH 的全局中断使能，C 里 <code>__enable_irq()</code> 就是 <code>csrs 0x800, 0x88</code>（<code>core_riscv.h</code>）。</li>
+<li><strong>0x804</strong>：中断系统配置（本文件写的那个）。<strong>0x800 和 0x804 差一位，功能完全不同</strong>，是这类代码最常见的看错点。</li>
+</ul>
+<h3 id="1-7-弱符号-中断属性"><a href="#1-7-弱符号-中断属性" class="headerlink" title="1.7 弱符号 + 中断属性"></a>1.7 弱符号 + 中断属性</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    .weak   NMI_Handler</span><br><span class="line">...</span><br><span class="line">NMI_Handler:</span><br><span class="line">HardFault_Handler:</span><br><span class="line">...</span><br><span class="line">1:</span><br><span class="line">	j 1b</span><br></pre></td></tr></table></figure>
+
+<p><code>.weak</code> 的含义是”这个符号先按我给的地址占位，如果别的 <code>.o</code> 里有强定义，就以它为准”。于是启动文件给每个中断都提供了一个<strong>默认桩</strong>（全部指向同一个 <code>j 1b</code> 死循环），工程里任何 <code>.c</code> 只要定义同名函数就自动接管。</p>
+<p>中断函数的属性也不是随便写的：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">TIM3_IRQHandler</span><span class="params">(<span class="type">void</span>)</span> __<span class="title function_">attribute__</span><span class="params">((interrupt(<span class="string">&quot;WCH-Interrupt-fast&quot;</span>)))</span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>WCH-Interrupt-fast</code> 告诉编译器：”硬件栈模式已开，进来时寄存器由硬件压栈，你只需要保存自己用到的 callee-saved 寄存器，返回用 <code>mret</code>。”这个”硬件栈模式已开”的前提，正是启动文件里那句 <code>csrw 0x804, 3</code>。</p>
+<h2 id="二、启动流程与全程地址"><a href="#二、启动流程与全程地址" class="headerlink" title="二、启动流程与全程地址"></a>二、启动流程与全程地址</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">复位 → 硬件从 0x0 取指</span><br><span class="line"> 0x000:  4c60006f  j 0x4c6              ← .init 唯一一条指令（_start / _sinit）</span><br><span class="line"> 0x4c6:  auipc/addi gp   → 0x20000880   __global_pointer$</span><br><span class="line"> 0x4ce:  auipc/addi sp   → 0x20005000   _eusrstack（RAM 顶端）</span><br><span class="line"> 0x4d6:  搬 .data        0xb458 → 0x20000000，共 0xb0 字节</span><br><span class="line"> 0x4fe:  清 .bss         0x200000b0 → 0x200020c0</span><br><span class="line"> 0x518:  csrw 0xbc0  ← 0x1f             流水线/指令预测</span><br><span class="line"> 0x51e:  csrw 0x804  ← 0x3              中断嵌套 + 硬件栈</span><br><span class="line"> 0x524:  csrw mstatus← 0x88             MIE | MPIE</span><br><span class="line"> 0x52c:  csrw mtvec  ← 0x7              _vector_base(0x4) | 3</span><br><span class="line"> 0x53c:  jal 0x43e                      SystemInit()</span><br><span class="line"> 0x540:  csrw mepc   ← 0x334            main</span><br><span class="line"> 0x54c:  mret                            → main，永不返回</span><br></pre></td></tr></table></figure>
+
+<p>之后的中断路径：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">外设触发中断 → 硬件按 mtvec 模式查表 → 表项 = 4 + 4×中断号</span><br><span class="line"> 例：TIM3 中断号 54 → 表址 0xdc → 0x2ccc = TIM3_IRQHandler（bsp_tick.c）</span><br><span class="line">     硬件压栈（HPE）→ ISR 只存 s0 → 业务 → mret</span><br></pre></td></tr></table></figure>
+
+<p>（表项 0 之外的地址都可数：<code>.</code> vector 从 0x4 起，第 n 项在 <code>0x4 + 4n</code>。）</p>
+<h2 id="三、逐段精读"><a href="#三、逐段精读" class="headerlink" title="三、逐段精读"></a>三、逐段精读</h2><h3 id="3-1-init：整段只有一条指令"><a href="#3-1-init：整段只有一条指令" class="headerlink" title="3.1 .init：整段只有一条指令"></a>3.1 <code>.init</code>：整段只有一条指令</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">	.section	.init,&quot;ax&quot;,@progbits</span><br><span class="line">	.global	_start</span><br><span class="line">	.align	1</span><br><span class="line">_start:</span><br><span class="line">	j	handle_reset</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>.section .init,&quot;ax&quot;,@progbits</code>：进入名字叫 <code>.init</code> 的段，<code>&quot;a&quot;</code> &#x3D; 分配地址、<code>&quot;x&quot;</code> &#x3D; 可执行，<code>@progbits</code> &#x3D; 有内容。</li>
+<li><code>.global _start</code> 把它导出，这样 <code>Link.ld</code> 里的 <code>ENTRY(_start)</code> 才能找到它。</li>
+<li>为什么只有一条 <code>j</code>？因为复位后内核固定从 0x0 取指，而这里空间最紧张、最讲究”只能放一条能跳到远方的指令”。真正的启动代码放到 <code>.text</code> 里，让链接器去排地址。</li>
+<li>实测这条 <code>j</code> 编码是 <code>4c60006f</code>，跳转目标 0x4c6——<strong>和 <code>Ld/Link.ld</code> 里 <code>.init</code> 位于 0x0、大小 4 字节完全对得上</strong>。</li>
+</ul>
+<p><strong><code>_start</code> 是怎么落到 0x0 的</strong>——不是启动文件一家干的，是四个环节接力：</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>谁</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>汇编</td>
+<td>本文件（<code>startup_ch32x035.S:13-16</code>）</td>
+<td><code>.section .init</code> 把 <code>_start</code> 放进 <code>.init</code> 段，位置是段内偏移 0；<code>.global</code> 使它可被引用</td>
+</tr>
+<tr>
+<td>定位</td>
+<td><code>Ld/Link.ld</code></td>
+<td><code>MEMORY</code> 里 <code>FLASH ORIGIN = 0x00000000</code>，且 <code>SECTIONS</code> 里 <strong><code>.init</code> 是第一个输出段</strong> → <code>.init</code> 的 VMA&#x2F;LMA &#x3D; 0x0，于是 <code>_start = 0x0</code></td>
+</tr>
+<tr>
+<td>记入口</td>
+<td><code>Link.ld</code> 的 <code>ENTRY( _start )</code></td>
+<td>写进 ELF 头 <code>e_entry</code>，<code>objdump</code> 才显示 <code>start address 0x00000000</code></td>
+</tr>
+<tr>
+<td>复位</td>
+<td>QingKe 内核</td>
+<td>复位后<strong>固定从 0x0 取指</strong>，不查 ELF 头、不问 <code>ENTRY</code></td>
+</tr>
+</tbody></table>
+<p>⚠ 最后一行是重点：<code>ENTRY(_start)</code> 只是记录，硬件只认 0x0，两者必须一致——这就是 <code>.init</code> 必须在 <code>SECTIONS</code> 里排第一、<code>FLASH</code> 必须从 0x0 开始的原因。另外，若别的 <code>.o</code> 也往 <code>.init</code> 里放东西，谁在 0x0 就取决于链接顺序：<code>KEEP(*(SORT_NONE(.init)))</code> 里的 <code>SORT_NONE</code> 是”不排序、按链接顺序”，这种冲突<strong>不会报错，只会静默换掉第一条指令</strong>。</p>
+<h3 id="3-2-vector：55-项数据表，不是代码"><a href="#3-2-vector：55-项数据表，不是代码" class="headerlink" title="3.2 .vector：55 项数据表，不是代码"></a>3.2 <code>.vector</code>：55 项数据表，不是代码</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">    .section    .vector,&quot;ax&quot;,@progbits</span><br><span class="line">    .align  1</span><br><span class="line">_vector_base:</span><br><span class="line">    .option norvc;</span><br><span class="line">    .word   _start</span><br><span class="line">    .word   0</span><br><span class="line">    .word   NMI_Handler</span><br><span class="line">    ...（共 55 行 .word）</span><br></pre></td></tr></table></figure>
+
+<p>表项分布：</p>
+<table>
+<thead>
+<tr>
+<th>索引</th>
+<th>内容</th>
+<th>索引</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>_start</code>（惯例占位，复位其实直接走 0x0）</td>
+<td>8</td>
+<td><code>Ecall_U_Mode_Handler</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td>0（保留）</td>
+<td>9</td>
+<td><code>Break_Point_Handler</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>NMI_Handler</code></td>
+<td>10、11</td>
+<td>0（保留）</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>HardFault_Handler</code></td>
+<td>12</td>
+<td><code>SysTick_Handler</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>0（保留）</td>
+<td>13</td>
+<td>0（保留）</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>Ecall_M_Mode_Handler</code></td>
+<td>14</td>
+<td><code>SW_Handler</code></td>
+</tr>
+<tr>
+<td>6、7</td>
+<td>0（保留）</td>
+<td>15</td>
+<td>0（保留）</td>
+</tr>
+<tr>
+<td>16 起</td>
+<td>外设中断：WWDG、PVD、FLASH、EXTI7_0、AWU、DMA1_CH1<del>8、ADC1、I2C1、USART1</del>4、SPI1、TIM1~3、USBFS、PIOC、OPA、USBPD…… 共 39 项</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>⚠ 两个常被算错的数字：</p>
+<ul>
+<li><strong>表项数是 55，不是 63</strong>。<code>.word</code> 一共 55 行 → 内容 0xdc 字节。</li>
+<li><code>objdump</code> 里 <code>.vector</code> 段大小显示 <strong>0xfc</strong>，比 0xdc 多 0x20 —— 那是 <code>Link.ld</code> 里 <code>.vector</code> 段尾的 <code>. = ALIGN(64)</code> 填充，把后面 <code>.text</code> 顶到 0x100 造成的。别把它当成”有 63 项”。</li>
+</ul>
+<p>三个内核相关的表项值得单独记：</p>
+<ul>
+<li><strong>表项 12 &#x3D; <code>SysTick_Handler</code><strong>：本工程 SysTick 是内核 64 位时基，只服务 <code>Delay_Us()/Delay_Ms()</code> 的轮询计数，</strong>不开中断</strong>（见 <code>User/ch32x035_it.c</code> 的说明）。1ms 节拍实际由 <strong>TIM3</strong> 提供。</li>
+<li>**表项 14 &#x3D; <code>SW_Handler</code>**：软件中断。裸机工程里是空的默认桩；FreeRTOS 的 port 在 <code>portASM.S</code> 里自己实现了它，用来做任务切换。</li>
+<li>**表项 9 &#x3D; <code>Break_Point_Handler</code>**、表项 8 &#x3D; <code>Ecall_U_Mode_Handler</code>：说明这颗 QingKe 内核的表里保留了 U 模式和断点异常的位置，模板一律填空。</li>
+</ul>
+<h3 id="3-3-弱符号桩：40-多个标签共用一个死循环"><a href="#3-3-弱符号桩：40-多个标签共用一个死循环" class="headerlink" title="3.3 弱符号桩：40 多个标签共用一个死循环"></a>3.3 弱符号桩：40 多个标签共用一个死循环</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">    .section    .text.vector_handler, &quot;ax&quot;, @progbits</span><br><span class="line">    .weak   NMI_Handler</span><br><span class="line">    ...（40 多个 .weak）</span><br><span class="line">NMI_Handler:</span><br><span class="line">HardFault_Handler:</span><br><span class="line">...</span><br><span class="line">TIM3_IRQHandler:</span><br><span class="line">1:</span><br><span class="line">	j 1b</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>从第 128 行到第 172 行是<strong>连续的标签，中间没有指令</strong>——所以它们全部等于同一个地址。实测就是 <strong>0x4c4</strong>，里面是一条 2 字节的 <code>c.j .</code>（自跳）。</li>
+<li>于是”未实现的中断”&#x3D; 进去就出不来。这是 WCH 模板的固定行为，不是 bug：它把”漏写 ISR”变成明显现象（卡死）而不是随机跑飞。</li>
+<li>覆盖方法：在任何 <code>.c</code> 里定义同名函数即可，<strong>不需要动启动文件</strong>。本工程就是这么干的：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>默认桩</th>
+<th>本工程实际</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NMI_Handler</code></td>
+<td>0x4c4 死循环</td>
+<td>0x322，<code>User/ch32x035_it.c</code> 里也是 <code>while(1)</code></td>
+</tr>
+<tr>
+<td><code>HardFault_Handler</code></td>
+<td>0x4c4 死循环</td>
+<td>0x324，调 <code>NVIC_SystemReset()</code> 后死循环</td>
+</tr>
+<tr>
+<td><code>TIM3_IRQHandler</code></td>
+<td>0x4c4 死循环</td>
+<td>0x2ccc，<code>Code/UserBsp/bsp_tick.c</code> 里累加 <code>s_u32TickMs</code></td>
+</tr>
+<tr>
+<td>其余 USART&#x2F;USBFS&#x2F;EXTI…</td>
+<td>0x4c4 死循环</td>
+<td>未被覆盖，仍是死循环</td>
+</tr>
+</tbody></table>
+<p>顺便记一个 HardFault 的细节：<code>NVIC_SystemReset()</code> 的实现在 <code>core_riscv.h</code> 里只有一行 <code>NVIC-&gt;CFGR = NVIC_KEY3 | (1&lt;&lt;7)</code>，即往 <strong>0xE000E048</strong> 写 <code>0xBEEF0080</code>（<code>PFIC-&gt;CFGR</code> 的偏移是 0x48，<code>NVIC_KEY3 = 0xBEEF0000</code>）。反汇编里 <code>HardFault_Handler</code> 是内联展开的 <code>lui/addi/sw</code> 三条，和这条 C 语句一模一样——所以这颗芯片”硬故障即复位”是库函数做的，不是硬件自动行为。</p>
+<h3 id="3-4-第一步与第二步：gp、sp"><a href="#3-4-第一步与第二步：gp、sp" class="headerlink" title="3.4 第一步与第二步：gp、sp"></a>3.4 第一步与第二步：gp、sp</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">handle_reset:</span><br><span class="line">.option push</span><br><span class="line">.option	norelax</span><br><span class="line">	la gp, __global_pointer$</span><br><span class="line">.option	pop</span><br><span class="line">1:</span><br><span class="line">	la sp, _eusrstack</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>gp 必须先设</strong>：编译器对 <code>.sdata/.sdata2/.sbss</code> 里的小变量用 gp 相对寻址（±2K）。gp 没设好之前，任何访问 small data 的代码都会跑飞——所以这一步排在最前面，而且用 <code>.option norelax</code> 把自己保护起来。</li>
+<li><strong>sp 相对不那么急，但要在任何函数调用前设好</strong>，否则压栈直接写飞。实测 sp &#x3D; <code>_eusrstack</code> &#x3D; <strong>0x20005000</strong>，即 RAM 顶端（<code>ORIGIN(RAM)+LENGTH(RAM)</code>）。</li>
+<li>这两步用的都是链接脚本提供的符号，正好接着 <code>Link.ld</code> 那篇说的”符号契约”：<code>.S</code> 要什么名字，<code>.ld</code> 就必须 <code>PROVIDE</code> 出来。</li>
+</ul>
+<h3 id="3-5-搬-data：Flash-初值-→-RAM-变量"><a href="#3-5-搬-data：Flash-初值-→-RAM-变量" class="headerlink" title="3.5 搬 .data：Flash 初值 → RAM 变量"></a>3.5 搬 <code>.data</code>：Flash 初值 → RAM 变量</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">	la a0, _data_lma</span><br><span class="line">	la a1, _data_vma</span><br><span class="line">	la a2, _edata</span><br><span class="line">	bgeu a1, a2, 2f</span><br><span class="line">1:</span><br><span class="line">	lw t0, (a0)</span><br><span class="line">	sw t0, (a1)</span><br><span class="line">	addi a0, a0, 4</span><br><span class="line">	addi a1, a1, 4</span><br><span class="line">	bltu a1, a2, 1b</span><br><span class="line">2:</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>语义：把 Flash 上 <code>[_data_lma, _data_lma + size)</code> 的内容拷到 RAM 的 <code>[_data_vma, _edata)</code>，一次 4 字节（RISC-V 不支持内存到内存的块拷贝指令，只能 <code>lw</code>+<code>sw</code>）。</li>
+<li>实测：源 <code>0xb458</code>、目标 <code>0x20000000</code>、终点 <code>0x200000b0</code>，共 <strong>0xb0 &#x3D; 176 字节</strong>。</li>
+<li>一个可以直观看到”链接器放松（relaxation）”的细节：反汇编里 <code>la a2, _edata</code> 变成了 <code>addi a2, gp, -2000</code>——因为 <code>_edata</code> 落在 gp±2K 窗口内，汇编器&#x2F;链接器直接用一条 gp 相对指令替换了 <code>auipc</code>+<code>addi</code> 两条。而 <code>la sp, _eusrstack</code> 因为太远，只能保留两条。</li>
+<li>循环边界用 <code>bgeu</code>（无符号比较）：地址比较<strong>永远要用无符号</strong>，用有符号比较在跨越 0x80000000 时会出错。</li>
+</ul>
+<h3 id="3-6-清零-bss"><a href="#3-6-清零-bss" class="headerlink" title="3.6 清零 .bss"></a>3.6 清零 <code>.bss</code></h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">	la a0, _sbss</span><br><span class="line">	la a1, _ebss</span><br><span class="line">	bgeu a0, a1, 2f</span><br><span class="line">1:</span><br><span class="line">	sw zero, (a0)</span><br><span class="line">	addi a0, a0, 4</span><br><span class="line">	bltu a0, a1, 1b</span><br><span class="line">2:</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>.bss</code> 里的变量在 C 语言语义下初值必须是 0，但它们在 Flash 里<strong>不占空间</strong>（NOBITS），所以只能运行时清零：实测 <code>0x200000b0</code> → <code>0x200020c0</code>，约 8.2 KB。</li>
+<li>这里 <code>sw zero</code> 一次写 4 字节，所以循环条件是”先判断再写”。<strong>如果 <code>.bss</code> 不是 4 字节对齐，这种循环会越界</strong>——保证它对齐的正是 <code>Link.ld</code> 里 <code>.bss</code> 段头的 <code>. = ALIGN(4)</code> 和 <code>_edata</code> 尾部的对齐。</li>
+<li>顺带看一段”拼接关系”：<code>.bss</code> 在 RAM 里紧跟在 <code>.data</code> 之后，实测 <code>_edata = _sbss = 0x200000b0</code>——两个循环首尾相接、互不重叠。它们都按 4 字节步进读写，所以必须靠 <code>Link.ld</code> 里的 <code>ALIGN(4)</code>（<code>.data</code> 尾的 <code>PROVIDE(_edata = .)</code> 之前、<code>.bss</code> 段头）来保证边界对齐；不对齐时 <code>sw zero, (a0)</code> 会越界写到别的变量上。</li>
+</ul>
+<h3 id="3-7-四个-CSR：真正的”内核开关”"><a href="#3-7-四个-CSR：真正的”内核开关”" class="headerlink" title="3.7 四个 CSR：真正的”内核开关”"></a>3.7 四个 CSR：真正的”内核开关”</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">/* Configure pipelining and instruction prediction */</span><br><span class="line">    li t0, 0x1f</span><br><span class="line">    csrw 0xbc0, t0</span><br><span class="line">/* Enable interrupt nesting and hardware stack */</span><br><span class="line">	li t0, 0x3</span><br><span class="line">	csrw 0x804, t0</span><br><span class="line">/* Enable global interrupt and configure privileged mode */</span><br><span class="line">   	li t0, 0x88</span><br><span class="line">   	csrw mstatus, t0</span><br><span class="line">/* Configure the interrupt vector table recognition mode and entry address mode */</span><br><span class="line"> 	la t0, _vector_base</span><br><span class="line">    ori t0, t0, 3</span><br><span class="line">	csrw mtvec, t0</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写入</th>
+<th>拆位</th>
+<th>实测值</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0xbc0 ← 0x1f</code></td>
+<td>WCH 私有的流水线&#x2F;指令预测控制</td>
+<td>—</td>
+<td>注释原话：”Configure pipelining and instruction prediction”；非标准 CSR，只有 WCH 手册有完整定义</td>
+</tr>
+<tr>
+<td><code>0x804 ← 0x3</code></td>
+<td>bit0 &#x3D; 中断嵌套使能，bit1 &#x3D; 硬件栈（HPE）使能</td>
+<td>—</td>
+<td>两者都开。<strong>这就是 <code>interrupt(&quot;WCH-Interrupt-fast&quot;)</code> 能成立的前提</strong></td>
+</tr>
+<tr>
+<td><code>mstatus ← 0x88</code></td>
+<td>bit3 <code>MIE</code> &#x3D; 1，bit7 <code>MPIE</code> &#x3D; 1</td>
+<td>—</td>
+<td><code>MIE ← MPIE</code>（&#x3D;1），<code>mret</code> 之后全局中断是<strong>打开</strong>的</td>
+</tr>
+<tr>
+<td><code>mtvec ← 0x7</code></td>
+<td><code>_vector_base</code>(0x4) | 模式位 3</td>
+<td>0x7</td>
+<td>低两位是模式：按向量表、表项里放的是绝对地址</td>
+</tr>
+</tbody></table>
+<p>两条容易忽略的联动：</p>
+<ol>
+<li><strong><code>0x804</code> 的中断嵌套位必须和 C 侧的优先级分组一致</strong>。<code>ch32x035_misc.h</code> 里就直接写了提示：”Check the configuration of CSR(0x804) in the startup file(.S)”——嵌套关掉时，优先级寄存器只有 bit[7:5] 一个子优先级字段；嵌套打开时才有”抢占优先级 + 子优先级”。本工程启动时按嵌套开启配置（0x3），<code>main</code> 里的第一件事就是 <code>NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1)</code>，两边是对上的。</li>
+<li><strong><code>mstatus</code> 里同时也设了特权模式相关位</strong>。RTOS 变体把它改成 <code>0x1800</code>（MPP &#x3D; 0b11、MIE &#x3D; 0），用意是”返回后中断先别开，交给 OS 自己开”——见第五章。</li>
+</ol>
+<h3 id="3-8-SystemInit-与-mret-进-main"><a href="#3-8-SystemInit-与-mret-进-main" class="headerlink" title="3.8 SystemInit() 与 mret 进 main"></a>3.8 <code>SystemInit()</code> 与 <code>mret</code> 进 main</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">   jal  SystemInit</span><br><span class="line">la t0, main</span><br><span class="line">csrw mepc, t0</span><br><span class="line">mret</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>SystemInit()</code>（<code>User/system_ch32x035.c</code>）做的是<strong>时钟</strong>：<code>RCC-&gt;CTLR |= 1</code> 开 HSI，<code>RCC-&gt;CFGR0 |= 0x50</code>、<code>&amp;= 0xF8FFFF5F</code>，然后 <code>SetSysClock()</code> 按宏选择频率——本工程启用的是 <code>SYSCLK_FREQ_48MHz_HSI</code>，即 48MHz HSI（<code>HSI_VALUE = 48000000</code>）。<strong>注意它不管 RAM&#x2F;时钟之外的事，也不初始化外设</strong>。</li>
+<li>用 <code>mret</code> 而不是 <code>jal</code> 进 <code>main</code> 是个关键细节：<code>mret</code> 用 <code>mepc</code> 当目标、顺便完成特权级和中断状态的切换，但**它不设置 <code>ra</code>**。所以 <code>main</code> 里 <code>ra</code> 是复位残留值，<code>main</code> 一旦 return 就是跳到垃圾地址。裸机上 <code>main</code> 必须以 <code>while(1)</code> 收尾，这不是风格问题。</li>
+<li>反汇编里能看到 <code>main</code> 的第一条不是压栈，而是 <code>jal t0, __riscv_save_0</code>——这是编译选项 <code>-msave-restore</code> 的产物：函数序言&#x2F;尾声被抽成公共库函数以省代码体积，不认识的读者容易把它当成”调用了什么函数”。</li>
+</ul>
+<h2 id="四、中断是怎么进来的"><a href="#四、中断是怎么进来的" class="headerlink" title="四、中断是怎么进来的"></a>四、中断是怎么进来的</h2><p>把第二章那张图和本章连起来，一次完整的中断是这样的：</p>
+<ol>
+<li><strong>外设触发</strong>（例如 TIM3 更新事件），PFIC（Programmable Fast Interrupt Controller，可编程快速中断控制器，<code>core_riscv.h</code> 里用宏 <code>NVIC</code> 别名指同一块寄存器）拉高中断请求。</li>
+<li><strong>硬件按 <code>mtvec</code> 查表</strong>：低两位是 3 → 表项里是绝对地址，取 <code>0x4 + 4 × IRQn</code> 处的字作为入口。TIM3 的 IRQn &#x3D; 54 → 地址 <code>0xdc</code> → 实测就是 <code>0x2ccc</code>。</li>
+<li><strong>硬件压栈（HPE）</strong>：因为 <code>csrw 0x804, 3</code> 打开了硬件栈，进入 ISR 时调用者保存寄存器（含 <code>mepc</code>、<code>mstatus</code>）由硬件自动入栈，软件不用管。</li>
+<li><strong>ISR 只保存自己用的 callee-saved</strong>。实测 <code>TIM3_IRQHandler</code>：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">00002ccc &lt;TIM3_IRQHandler&gt;:</span><br><span class="line">    2ccc:  addi sp,sp,-16</span><br><span class="line">    2cce:  sw   s0,12(sp)</span><br><span class="line">    ...    业务：查标志、清标志、s_u32TickMs++、LcdTick、BspButtonScanTick…</span><br><span class="line">    2d1a:  lw   s0,12(sp)</span><br><span class="line">    2d1c:  addi sp,sp,16</span><br><span class="line">    2d1e:  mret</span><br></pre></td></tr></table></figure>
+
+<p>   对比一个普通函数（<code>SystemInit</code>）：序言是 <code>jal t0, __riscv_save_0</code>，尾声是 <code>ret</code>。<strong>ISR 的 <code>mret</code> 和”只存自己用到的寄存器”这两点，正是 <code>interrupt(&quot;WCH-Interrupt-fast&quot;)</code> 的效果</strong>；写错了（比如自己声明成普通函数、或手写 <code>mret</code> 却让编译器也生成返回序列）就会出现寄存器被破坏或连续返回两次的怪现象。</p>
+<ol start="5">
+<li>想让某个中断有响应，标准动作只有两步：<strong>打开外设的中断使能</strong>（<code>NVIC-&gt;IENR[...]</code>，外设库函数会做）+ <strong>在任意 <code>.c</code> 里实现同名 <code>xxx_IRQHandler</code> 覆盖弱符号</strong>。启动文件一行都不用改。</li>
+</ol>
+<h2 id="五、其他例程的启动文件差异"><a href="#五、其他例程的启动文件差异" class="headerlink" title="五、其他例程的启动文件差异"></a>五、其他例程的启动文件差异</h2><p><code>tools/EVT/EXAM/</code> 下 11 份 <code>startup_ch32x035.S</code> 与工程版逐行比对，差别只有四处（<code>SRC/Startup/</code> 那份与工程版完全相同）：</p>
+<table>
+<thead>
+<tr>
+<th>例程</th>
+<th>差异</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RunInRam/RunInRAM_Select</code></td>
+<td>在 <code>.bss</code> 清零之后多一段循环：<code>la a0,_highcode_lma</code> &#x2F; <code>a1 =_highcode_vma_start</code> &#x2F; <code>a2 =_highcode_vma_end</code>，<code>lw/sw</code> 搬到 RAM</td>
+<td>与 <code>.ld</code> 里 <code>.highcode &gt;RAM AT&gt;FLASH</code> 配对，把标了 <code>.highcode</code> 的函数搬进 RAM 跑</td>
+</tr>
+<tr>
+<td><code>FreeRTOS</code> &#x2F; <code>HarmonyOS LiteOS_m</code> &#x2F; <code>TencentOS</code></td>
+<td><code>csrw 0x804, 2</code>（只开硬件栈，<strong>关</strong>中断嵌套）、<code>mstatus ← 0x1800</code>（MPP&#x3D;0b11、MIE&#x3D;0，返回后全局中断保持关闭）</td>
+<td>RTOS 自己管临界区和优先级，不希望内核悄悄嵌套；中断由 OS 启动调度器时再开</td>
+</tr>
+<tr>
+<td><code>RT-Thread</code></td>
+<td>同上两条，并且把入口从 <code>main</code> 换成 <code>entry</code></td>
+<td>RT-Thread 的 C 入口是 <code>entry()</code>，由它再调用 <code>rtthread_startup()</code></td>
+</tr>
+<tr>
+<td><code>FLASH/BootAsUser</code></td>
+<td>最前面多一个 <code>.bxx</code> 段：<code>.align 2</code> + <code>lui a4,0x80000; lui a5,0xe000f; sw a4,-752(a5)</code>（即往 0xE000ED10 写 0x80000）</td>
+<td><code>.ld</code> 把 <code>.bxx</code> 放在 BOOT FLASH（0x1FFF0000）最前面，这段是 BOOT FLASH 被当作”入口”时先跑的一小段；模板未给注释，寄存器含义以 WCH 手册为准</td>
+</tr>
+</tbody></table>
+<p>📌 规律很清楚：<strong>改启动文件基本只有两件事</strong>——改 CSR 初值（中断嵌套&#x2F;特权&#x2F;中断开关），或者在搬运清单里加一段（highcode）。入口函数、外设初始化都不在这里。</p>
+<h2 id="六、坑"><a href="#六、坑" class="headerlink" title="六、坑"></a>六、坑</h2><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>main</code> 里 <code>return</code></td>
+<td>进 <code>main</code> 用的是 <code>mret</code>，没设 <code>ra</code>；return 即跳垃圾地址。必须 <code>while(1)</code></td>
+</tr>
+<tr>
+<td>漏写 ISR 就卡死</td>
+<td>默认桩是 <code>j .</code> 自跳，且<strong>所有</strong>未实现中断共享它，现象是”死在某处、调试器显示不在任何函数里”</td>
+</tr>
+<tr>
+<td>混淆 <code>0x800</code> &#x2F; <code>0x804</code></td>
+<td><code>0x800</code> 是全局中断使能（<code>__enable_irq</code>，<code>csrs</code>），<code>0x804</code> 是中断嵌套+硬件栈（<code>csrw</code>）</td>
+</tr>
+<tr>
+<td>把 <code>.align 1</code> 当 1 字节</td>
+<td>RISC-V 是 2^n；用 ARM 直觉读会算错向量表的对齐</td>
+</tr>
+<tr>
+<td><code>.vector</code> 大小当表项数</td>
+<td>段大小 0xfc 含 64 字节对齐填充，真正的表项是 55 个 0xdc 字节</td>
+</tr>
+<tr>
+<td>改 <code>0x804</code> 不同步改优先级分组</td>
+<td>两者必须配套（<code>ch32x035_misc.h</code> 的注释已明确提示）</td>
+</tr>
+<tr>
+<td>ISR 写成普通函数</td>
+<td>丢了 <code>interrupt(&quot;WCH-Interrupt-fast&quot;)</code>，编译器会按普通 ABI 保存寄存器、用 <code>ret</code> 返回，行为不可预期</td>
+</tr>
+<tr>
+<td>以为 <code>SystemInit()</code> 会初始化外设</td>
+<td>它只管时钟（HSI + 分频）；GPIO&#x2F;USART&#x2F;TIM 都要在 <code>main</code> 里自己配</td>
+</tr>
+<tr>
+<td>只看 <code>.S</code> 不看 <code>.ld</code></td>
+<td><code>_eusrstack</code>、<code>_data_lma</code>、<code>_vector_base</code> 这些符号全部由链接脚本提供，改 <code>Link.ld</code> 就会改启动行为</td>
+</tr>
+</tbody></table>
+<h2 id="七、速查表"><a href="#七、速查表" class="headerlink" title="七、速查表"></a>七、速查表</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>答案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>复位后第一条指令在哪？</td>
+<td>0x0，<code>.init</code> 里的 <code>j handle_reset</code>（实测目标 0x4c6）</td>
+</tr>
+<tr>
+<td>启动代码为什么不放在 0x0？</td>
+<td>0x0 只留一条跳转；真正的启动代码在 <code>.text</code> 里由链接器排版</td>
+</tr>
+<tr>
+<td><code>.vector</code> 里有多少项？</td>
+<td>55 项（0xdc 字节），段大小 0xfc 是因为 <code>ALIGN(64)</code> 填充</td>
+</tr>
+<tr>
+<td>我写的 <code>USART1_IRQHandler</code> 为什么生效了？</td>
+<td>启动文件用 <code>.weak</code> 给了默认桩，你的强定义自动覆盖，不用改启动文件</td>
+</tr>
+<tr>
+<td>中断怎么找到我的函数？</td>
+<td><code>mtvec</code> 低两位 &#x3D; 3（表项为绝对地址），入口地址 &#x3D; <code>0x4 + 4 × IRQn</code></td>
+</tr>
+<tr>
+<td>为什么 ISR 不用自己保存所有寄存器？</td>
+<td><code>csrw 0x804, 3</code> 开了硬件栈，硬件负责压栈；<code>WCH-Interrupt-fast</code> 属性让编译器只存 callee-saved</td>
+</tr>
+<tr>
+<td><code>main</code> 能不能 return？</td>
+<td>不能。进 <code>main</code> 用 <code>mret</code>，<code>ra</code> 未设置</td>
+</tr>
+<tr>
+<td>启动时中断是开着的吗？</td>
+<td>是。<code>mstatus = 0x88</code> 让 <code>mret</code> 后 <code>MIE = 1</code>；RTOS 变体改成 <code>0x1800</code> 则是关着的</td>
+</tr>
+<tr>
+<td><code>SystemInit()</code> 做了什么？</td>
+<td>开 HSI、配置分频，本工程跑 48MHz HSI；不碰任何外设</td>
+</tr>
+<tr>
+<td>换个芯片型号要改哪里？</td>
+<td>换 <code>startup_*.S</code>（向量表项和外设中断号都不同）+ 换 <code>Link.ld</code> 的 <code>MEMORY</code>，其余按芯片头文件改</td>
+</tr>
+</tbody></table>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/RISC-V/">RISC-V</a><a class="post-meta__tags" href="/tags/CH32X035/">CH32X035</a><a class="post-meta__tags" href="/tags/%E5%90%AF%E5%8A%A8%E6%96%87%E4%BB%B6/">启动文件</a><a class="post-meta__tags" href="/tags/startup/">startup</a><a class="post-meta__tags" href="/tags/%E4%B8%AD%E6%96%AD%E5%90%91%E9%87%8F%E8%A1%A8/">中断向量表</a><a class="post-meta__tags" href="/tags/HPE/">HPE</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2026/09/18/knowledge/embedded/ch32x035-linker-script/" title="以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">以 CH32X035 的 Link.ld 为例：链接脚本文件精读</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2026/09/18/knowledge/embedded/ch32x035-linker-script/" title="以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-18</div><div class="title">以 CH32X035 的 Link.ld 为例：链接脚本文件精读</div></div></a></div><div><a href="/2026/09/17/knowledge/embedded/printf-stdio-retarget/" title="printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-17</div><div class="title">printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://avatars.githubusercontent.com/u/76079782?v=4" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">yjrqz777</div><div class="author-info__description">杂学家</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/yjrqz777"><i class="fab fa-github"></i><span>Find me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/yjrqz777" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yjrqz77@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">什么也没......</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E8%AF%BB%E8%BF%99%E4%BB%BD-S-%E4%B9%8B%E5%89%8D%E8%A6%81%E7%94%A8%E7%9A%84%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">一、读这份 .S 之前要用的知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E4%B8%80%E4%B8%AA%E5%90%AF%E5%8A%A8%E6%96%87%E4%BB%B6%E9%87%8C%E5%85%B6%E5%AE%9E%E6%9C%89%E4%B8%89%E7%B1%BB%E5%86%85%E5%AE%B9"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 一个启动文件里其实有三类内容</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-%E5%87%BA%E7%8E%B0%E7%9A%84%E6%8C%87%E4%BB%A4%E9%80%9F%E8%AE%A4"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 出现的指令速认</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E6%95%B0%E5%AD%97%E6%A0%87%E7%AD%BE-1-x2F-1b-x2F-2f"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 数字标签 1: &#x2F; 1b &#x2F; 2f</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-option-%E4%B8%89%E4%B8%AA"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 .option 三个</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-align-1-%E5%9C%A8-RISC-V-%E6%98%AF-2-%E7%9A%84-1-%E6%AC%A1%E6%96%B9"><span class="toc-number">2.5.</span> <span class="toc-text">1.5 .align 1 在 RISC-V 是 2 的 1 次方</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-6-%E8%BF%99%E4%BB%BD%E6%96%87%E4%BB%B6%E7%94%A8%E5%88%B0%E7%9A%84-CSR"><span class="toc-number">2.6.</span> <span class="toc-text">1.6 这份文件用到的 CSR</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-7-%E5%BC%B1%E7%AC%A6%E5%8F%B7-%E4%B8%AD%E6%96%AD%E5%B1%9E%E6%80%A7"><span class="toc-number">2.7.</span> <span class="toc-text">1.7 弱符号 + 中断属性</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B%E4%B8%8E%E5%85%A8%E7%A8%8B%E5%9C%B0%E5%9D%80"><span class="toc-number">3.</span> <span class="toc-text">二、启动流程与全程地址</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E9%80%90%E6%AE%B5%E7%B2%BE%E8%AF%BB"><span class="toc-number">4.</span> <span class="toc-text">三、逐段精读</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-init%EF%BC%9A%E6%95%B4%E6%AE%B5%E5%8F%AA%E6%9C%89%E4%B8%80%E6%9D%A1%E6%8C%87%E4%BB%A4"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 .init：整段只有一条指令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-vector%EF%BC%9A55-%E9%A1%B9%E6%95%B0%E6%8D%AE%E8%A1%A8%EF%BC%8C%E4%B8%8D%E6%98%AF%E4%BB%A3%E7%A0%81"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 .vector：55 项数据表，不是代码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-%E5%BC%B1%E7%AC%A6%E5%8F%B7%E6%A1%A9%EF%BC%9A40-%E5%A4%9A%E4%B8%AA%E6%A0%87%E7%AD%BE%E5%85%B1%E7%94%A8%E4%B8%80%E4%B8%AA%E6%AD%BB%E5%BE%AA%E7%8E%AF"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 弱符号桩：40 多个标签共用一个死循环</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-%E7%AC%AC%E4%B8%80%E6%AD%A5%E4%B8%8E%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9Agp%E3%80%81sp"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 第一步与第二步：gp、sp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-5-%E6%90%AC-data%EF%BC%9AFlash-%E5%88%9D%E5%80%BC-%E2%86%92-RAM-%E5%8F%98%E9%87%8F"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 搬 .data：Flash 初值 → RAM 变量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-6-%E6%B8%85%E9%9B%B6-bss"><span class="toc-number">4.6.</span> <span class="toc-text">3.6 清零 .bss</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-7-%E5%9B%9B%E4%B8%AA-CSR%EF%BC%9A%E7%9C%9F%E6%AD%A3%E7%9A%84%E2%80%9D%E5%86%85%E6%A0%B8%E5%BC%80%E5%85%B3%E2%80%9D"><span class="toc-number">4.7.</span> <span class="toc-text">3.7 四个 CSR：真正的”内核开关”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-8-SystemInit-%E4%B8%8E-mret-%E8%BF%9B-main"><span class="toc-number">4.8.</span> <span class="toc-text">3.8 SystemInit() 与 mret 进 main</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E4%B8%AD%E6%96%AD%E6%98%AF%E6%80%8E%E4%B9%88%E8%BF%9B%E6%9D%A5%E7%9A%84"><span class="toc-number">5.</span> <span class="toc-text">四、中断是怎么进来的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%85%B6%E4%BB%96%E4%BE%8B%E7%A8%8B%E7%9A%84%E5%90%AF%E5%8A%A8%E6%96%87%E4%BB%B6%E5%B7%AE%E5%BC%82"><span class="toc-number">6.</span> <span class="toc-text">五、其他例程的启动文件差异</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%9D%91"><span class="toc-number">7.</span> <span class="toc-text">六、坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">8.</span> <span class="toc-text">七、速查表</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/18/knowledge/embedded/ch32x035-startup-flow/" title="以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读">以 CH32X035 的 startup_ch32x035.S 为例：启动文件与启动流程精读</a><time datetime="2026-09-18T06:20:00.000Z" title="发表于 2026-09-18 14:20:00">2026-09-18</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/18/knowledge/embedded/ch32x035-linker-script/" title="以 CH32X035 的 Link.ld 为例：链接脚本文件精读">以 CH32X035 的 Link.ld 为例：链接脚本文件精读</a><time datetime="2026-09-18T05:50:00.000Z" title="发表于 2026-09-18 13:50:00">2026-09-18</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/09/17/knowledge/embedded/printf-stdio-retarget/" title="printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理">printf 从调用到串口：stdio 分层、流与 fd、retarget 全梳理</a><time datetime="2026-09-17T12:35:00.000Z" title="发表于 2026-09-17 20:35:00">2026-09-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/09/01/hlk_7621_kit/webflash/" title="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录"/></a><div class="content"><a class="title" href="/2026/09/01/hlk_7621_kit/webflash/" title="HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录">HLK-7621 U-Boot(2026.07) WebFlash 与 OpenWrt RAM 启动记录</a><time datetime="2026-09-01T05:00:00.000Z" title="发表于 2026-09-01 13:00:00">2026-09-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/08/27/hlk_7621_kit/boot-method/" title="HLK-7621 U-Boot(2026.07) 启动方式分析"><img src="/img/openwrt/openwrt_text_blue_and_dark_blue.svg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HLK-7621 U-Boot(2026.07) 启动方式分析"/></a><div class="content"><a class="title" href="/2026/08/27/hlk_7621_kit/boot-method/" title="HLK-7621 U-Boot(2026.07) 启动方式分析">HLK-7621 U-Boot(2026.07) 启动方式分析</a><time datetime="2026-08-27T12:30:00.000Z" title="发表于 2026-08-27 20:30:00">2026-08-27</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2026 By yjrqz777</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const $mermaidWrap = document.querySelectorAll('#article-container .mermaid-wrap')
+  if ($mermaidWrap.length) {
+    window.runMermaid = () => {
+      window.loadMermaid = true
+      const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+      Array.from($mermaidWrap).forEach((item, index) => {
+        const mermaidSrc = item.firstElementChild
+        const mermaidThemeConfig = '%%{init:{ \'theme\':\'' + theme + '\'}}%%\n'
+        const mermaidID = 'mermaid-' + index
+        const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+        mermaid.mermaidAPI.render(mermaidID, mermaidDefinition, (svgCode) => {
+          mermaidSrc.insertAdjacentHTML('afterend', svgCode)
+        })
+      })
+    }
+
+    const loadMermaid = () => {
+      window.loadMermaid ? runMermaid() : getScript('https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js').then(runMermaid)
+    }
+
+    window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+  }
+})()</script></div><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-heart.min.js" async="async" mobile="true"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body></html>

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="以 CH32X035 工程的 Ld&#x2F;Link.ld 为样本：先补齐读链接脚本需要的知识（section、VMA&#x2F;LMA、位置计数器、KEEP、PROVIDE、gc-sections），再逐段拆解脚本本身，并用该工程 map 与 objdump 里的真实地址验证每一条结论。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以 CH32X035 的 Link.ld 为例：链接脚本文件精读">
+<meta property="og:url" content="http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="以 CH32X035 工程的 Ld&#x2F;Link.ld 为样本：先补齐读链接脚本需要的知识（section、VMA&#x2F;LMA、位置计数器、KEEP、PROVIDE、gc-sections），再逐段拆解脚本本身，并用该工程 map 与 objdump 里的真实地址验证每一条结论。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-18T05:50:00.000Z">
+<meta property="article:modified_time" content="2026-09-18T06:03:21.601Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="链接脚本">
+<meta property="article:tag" content="Link.ld">
+<meta property="article:tag" content="RISC-V">
+<meta property="article:tag" content="CH32X035">
+<meta property="article:tag" content="LMA">
+<meta property="article:tag" content="gc-sections">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>以 CH32X035 的 Link.ld 为例：链接脚本文件精读</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/09/18/knowledge/embedded/ch32x035-startup-flow/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/09/17/knowledge/embedded/printf-stdio-retarget/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&text=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&is_video=false&description=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=以 CH32X035 的 Link.ld 为例：链接脚本文件精读&body=Check out this article: http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&name=以 CH32X035 的 Link.ld 为例：链接脚本文件精读&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;链接脚本只干三件事：&lt;strong&gt;排布&lt;/strong&gt;（谁进 Flash、谁进 RAM）、&lt;strong&gt;接线&lt;/strong&gt;（给启动代码和 C 库提供 &lt;code&gt;_data_lma&lt;/code&gt;、&lt;code&gt;_sbss&lt;/code&gt;、&lt;code&gt;_eusrstack&lt;/code&gt;、&lt;code&gt;_heap_end&lt;/code&gt; 等符号）、&lt;strong&gt;兜底&lt;/strong&gt;（把 C++ 构造表收进来）。&lt;/li&gt;
+&lt;li&gt;唯一的技巧是 &lt;strong&gt;VMA&amp;#x2F;LMA 分离&lt;/strong&gt;：&lt;code&gt;.data&lt;/code&gt; 运行在 RAM、初值在 Flash，靠两个零长段 &lt;code&gt;.dalign&lt;/code&gt;&amp;#x2F;&lt;code&gt;.dlalign&lt;/code&gt; 取到 &lt;code&gt;_data_vma&lt;/code&gt;&amp;#x2F;&lt;code&gt;_data_lma&lt;/code&gt; 一对地址。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;.stack&lt;/code&gt; 用绝对表达式钉在 RAM 顶端，它的起点 &lt;code&gt;_heap_end&lt;/code&gt; 就是工程 &lt;code&gt;_sbrk()&lt;/code&gt; 的堆上限。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PROVIDE&lt;/code&gt; 的符号&lt;strong&gt;没人引用就不进符号表&lt;/strong&gt;（map 里显示 &lt;code&gt;[!provide]&lt;/code&gt;），普通赋值则一定在。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&t=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E8%AF%BB%E5%AE%83%E4%B9%8B%E5%89%8D%E8%A6%81%E7%94%A8%E7%9A%84%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">一、读它之前要用的知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-section-%E4%B8%8E%E2%80%9D%E6%AE%B5%E2%80%9D"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 section 与”段”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-VMA-%E4%B8%8E-LMA"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 VMA 与 LMA</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E8%84%9A%E6%9C%AC%E5%85%B3%E9%94%AE%E5%AD%97%E9%80%9F%E8%AE%A4"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 脚本关键字速认</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-%E5%B7%A5%E5%85%B7%E9%93%BE%E4%B8%80%E4%BE%A7%E7%9A%84%E5%BC%80%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 工具链一侧的开关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E8%84%9A%E6%9C%AC%E5%85%A8%E8%B2%8C"><span class="toc-number">3.</span> <span class="toc-text">二、脚本全貌</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E9%80%90%E6%AE%B5%E7%B2%BE%E8%AF%BB"><span class="toc-number">4.</span> <span class="toc-text">三、逐段精读</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%A4%B4%E4%B8%89%E8%A1%8C%EF%BC%9A%E5%85%A5%E5%8F%A3%E3%80%81%E6%A0%88%E5%A4%A7%E5%B0%8F%E3%80%81PROVIDE"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 头三行：入口、栈大小、PROVIDE</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-MEMORY%EF%BC%9A62K-%E5%92%8C-20K-%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 MEMORY：62K 和 20K 从哪来</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-init-%E4%B8%8E-vector%EF%BC%9A%E5%BF%85%E9%A1%BB%E9%92%89%E5%9C%A8%E6%9C%80%E5%89%8D%E9%9D%A2%E7%9A%84%E4%B8%A4%E6%AE%B5"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 .init 与 .vector：必须钉在最前面的两段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-text-x2F-fini%EF%BC%9A%E4%BB%A3%E7%A0%81%E4%B8%8E%E5%8F%AA%E8%AF%BB%E6%95%B0%E6%8D%AE"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 .text &#x2F; .fini：代码与只读数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-5-C-%E6%9E%84%E9%80%A0%E8%A1%A8%E4%BA%94%E8%BF%9E%EF%BC%9A%E6%A8%A1%E6%9D%BF%E5%BE%88%E9%95%BF%EF%BC%8C%E6%9C%AC%E5%B7%A5%E7%A8%8B%E6%98%AF%E7%A9%BA%E7%9A%84"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 C++ 构造表五连：模板很长，本工程是空的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-6-dalign-x2F-dlalign-x2F-data%EF%BC%9AVMA-%E4%B8%8E-LMA-%E5%88%86%E7%A6%BB"><span class="toc-number">4.6.</span> <span class="toc-text">3.6 .dalign &#x2F; .dlalign &#x2F; .data：VMA 与 LMA 分离</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-7-bss-%E4%B8%8E-end"><span class="toc-number">4.7.</span> <span class="toc-text">3.7 .bss 与 _end</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-8-stack%EF%BC%9A%E6%A0%88%E3%80%81-heap-end-%E4%B8%8E-sbrk"><span class="toc-number">4.8.</span> <span class="toc-text">3.8 .stack：栈、_heap_end 与 _sbrk</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%90%8C%E6%97%8F%E8%84%9A%E6%9C%AC%E7%9A%84%E5%87%A0%E5%A4%84%E5%B7%AE%E5%BC%82"><span class="toc-number">5.</span> <span class="toc-text">四、同族脚本的几处差异</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E6%94%B9%E8%84%9A%E6%9C%AC%E6%97%B6%E7%9A%84%E5%9D%91"><span class="toc-number">6.</span> <span class="toc-text">五、改脚本时的坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">7.</span> <span class="toc-text">六、速查表</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        以 CH32X035 的 Link.ld 为例：链接脚本文件精读
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-09-18T05:50:00.000Z" class="dt-published" itemprop="datePublished">2026-09-18</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/CH32X035/" rel="tag">CH32X035</a>, <a class="p-category" href="/cactus-theme/tags/LMA/" rel="tag">LMA</a>, <a class="p-category" href="/cactus-theme/tags/Link-ld/" rel="tag">Link.ld</a>, <a class="p-category" href="/cactus-theme/tags/RISC-V/" rel="tag">RISC-V</a>, <a class="p-category" href="/cactus-theme/tags/gc-sections/" rel="tag">gc-sections</a>, <a class="p-category" href="/cactus-theme/tags/%E9%93%BE%E6%8E%A5%E8%84%9A%E6%9C%AC/" rel="tag">链接脚本</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>链接脚本只干三件事：<strong>排布</strong>（谁进 Flash、谁进 RAM）、<strong>接线</strong>（给启动代码和 C 库提供 <code>_data_lma</code>、<code>_sbss</code>、<code>_eusrstack</code>、<code>_heap_end</code> 等符号）、<strong>兜底</strong>（把 C++ 构造表收进来）。</li>
+<li>唯一的技巧是 <strong>VMA&#x2F;LMA 分离</strong>：<code>.data</code> 运行在 RAM、初值在 Flash，靠两个零长段 <code>.dalign</code>&#x2F;<code>.dlalign</code> 取到 <code>_data_vma</code>&#x2F;<code>_data_lma</code> 一对地址。</li>
+<li><code>.stack</code> 用绝对表达式钉在 RAM 顶端，它的起点 <code>_heap_end</code> 就是工程 <code>_sbrk()</code> 的堆上限。</li>
+<li><code>PROVIDE</code> 的符号<strong>没人引用就不进符号表</strong>（map 里显示 <code>[!provide]</code>），普通赋值则一定在。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="一、读它之前要用的知识"><a href="#一、读它之前要用的知识" class="headerlink" title="一、读它之前要用的知识"></a>一、读它之前要用的知识</h2><h3 id="1-1-section-与”段”"><a href="#1-1-section-与”段”" class="headerlink" title="1.1 section 与”段”"></a>1.1 section 与”段”</h3><p>编译器把每个函数、每个变量放进一个<strong>命名块（section）</strong>，名字带前缀：<code>.text</code>（代码）、<code>.rodata</code>（只读数据）、<code>.data</code>（有初值的可写数据）、<code>.bss</code>（初值为 0 的可写数据）。开了 <code>-ffunction-sections -fdata-sections</code> 之后，每个函数&#x2F;变量各占一个段（<code>.text.xxx</code>、<code>.data.yyy</code>）。</p>
+<p>链接器的工作就是把这些碎段<strong>合并、排序、定位</strong>。脚本决定”合并成哪些输出段、各自落在哪个地址”；产物 ELF 里的 segment（段）是输出段的集合。</p>
+<h3 id="1-2-VMA-与-LMA"><a href="#1-2-VMA-与-LMA" class="headerlink" title="1.2 VMA 与 LMA"></a>1.2 VMA 与 LMA</h3><table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>全称</th>
+<th>含义</th>
+<th>谁在用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VMA</td>
+<td>Virtual Memory Address，运行地址</td>
+<td>程序<strong>运行时</strong>这条指令&#x2F;变量在哪个地址</td>
+<td>CPU 取指、读写</td>
+</tr>
+<tr>
+<td>LMA</td>
+<td>Load Memory Address，装载地址</td>
+<td>这份内容<strong>复位后</strong>躺在哪个地址</td>
+<td>烧录器、启动拷贝代码</td>
+</tr>
+</tbody></table>
+<p>Flash 里的段通常 VMA &#x3D; LMA。<code>.data</code> 是唯一例外：初值存在 Flash（LMA），运行时必须在 RAM（VMA）。<strong>这一步搬运不是链接器做的，是启动代码做的</strong>——脚本只负责把两头的地址告诉它。</p>
+<h3 id="1-3-脚本关键字速认"><a href="#1-3-脚本关键字速认" class="headerlink" title="1.3 脚本关键字速认"></a>1.3 脚本关键字速认</h3><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MEMORY &#123; ... &#125;</code></td>
+<td>声明可用存储区域：名字、属性（<code>rx</code>&#x2F;<code>xrw</code>）、<code>ORIGIN</code>、<code>LENGTH</code></td>
+</tr>
+<tr>
+<td><code>SECTIONS &#123; ... &#125;</code></td>
+<td>输出段的定义与定位规则</td>
+</tr>
+<tr>
+<td><code>.</code></td>
+<td><strong>位置计数器（location counter）</strong>，表示当前地址；<code>_sym = .</code> 就是”记录当前位置”</td>
+</tr>
+<tr>
+<td><code>ALIGN(n)</code></td>
+<td>把 <code>.</code> 向上对齐到 n 字节</td>
+</tr>
+<tr>
+<td><code>&gt;REGION</code></td>
+<td>指定段的 VMA 所在区域，<code>.</code> 随之跳到该区域</td>
+</tr>
+<tr>
+<td><code>AT&gt;REGION</code></td>
+<td>指定段的 <strong>LMA</strong> 所在区域；只写 <code>&gt;X AT&gt;X</code> 表示 VMA &#x3D; LMA</td>
+</tr>
+<tr>
+<td><code>KEEP(...)</code></td>
+<td>即使 <code>--gc-sections</code> 判定”没人引用”也要保留</td>
+</tr>
+<tr>
+<td><code>PROVIDE(sym = ...)</code></td>
+<td>只在该符号没被别处定义<strong>且被引用</strong>时才定义；<code>PROVIDE_HIDDEN</code> 版本不进动态符号表</td>
+</tr>
+<tr>
+<td><code>sym = ...</code></td>
+<td>普通赋值，无条件定义</td>
+</tr>
+<tr>
+<td><code>*(.text .text.*)</code></td>
+<td>通配符：收集所有输入段</td>
+</tr>
+<tr>
+<td><code>EXCLUDE_FILE(...)</code></td>
+<td>从通配结果里排除指定目标文件的段</td>
+</tr>
+<tr>
+<td><code>SORT_BY_INIT_PRIORITY(...)</code></td>
+<td>按 <code>init_priority</code> 属性排序（决定 C++ 构造顺序）</td>
+</tr>
+<tr>
+<td><code>ENTRY(_start)</code></td>
+<td>指定 ELF 入口符号（等价于链接选项 <code>-e</code>）</td>
+</tr>
+</tbody></table>
+<h3 id="1-4-工具链一侧的开关"><a href="#1-4-工具链一侧的开关" class="headerlink" title="1.4 工具链一侧的开关"></a>1.4 工具链一侧的开关</h3><p>脚本单独看没有意义，本工程的链接命令（<code>obj/makefile</code>）是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">riscv-none-embed-gcc -march=rv32imacxw -mabi=ilp32 -msmall-data-limit=8 -msave-restore \</span><br><span class="line">  -Os -ffunction-sections -fdata-sections -fno-common -g \</span><br><span class="line">  -T &quot;.../Ld/Link.ld&quot; -nostartfiles -Xlinker --gc-sections \</span><br><span class="line">  -Wl,-Map,&quot;CH32X035G8U.map&quot; --specs=nano.specs --specs=nosys.specs -o CH32X035G8U.elf ...</span><br></pre></td></tr></table></figure>
+
+<p>（节选，只保留与链接相关的部分。）</p>
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>对脚本的影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-ffunction-sections -fdata-sections</code></td>
+<td>段被拆碎，脚本里的 <code>*(.text.*)</code>、<code>*(.data .data.*)</code> 才有意义</td>
+</tr>
+<tr>
+<td><code>--gc-sections</code></td>
+<td>没人引用的段会被丢掉，于是 <code>KEEP</code> 成为”保命符”</td>
+</tr>
+<tr>
+<td><code>-msmall-data-limit=8</code></td>
+<td>≤8 字节的变量进 <code>.sdata/.sdata2/.sbss</code>，脚本必须收它们并定义 <code>__global_pointer$</code></td>
+</tr>
+<tr>
+<td><code>-nostartfiles</code></td>
+<td>没有 crt0&#x2F;crti&#x2F;crtbegin，<code>_start</code> 由 <code>Startup/startup_ch32x035.S</code> 自己提供</td>
+</tr>
+<tr>
+<td><code>--specs=nano.specs</code> <code>--specs=nosys.specs</code></td>
+<td>newlib-nano + syscall 空桩；<code>_sbrk</code> 由工程 <code>Debug/debug.c</code> 自己实现</td>
+</tr>
+<tr>
+<td><code>-Wl,-Map</code></td>
+<td>产出 map 文件，脚本写得对不对全靠它核对</td>
+</tr>
+</tbody></table>
+<h2 id="二、脚本全貌"><a href="#二、脚本全貌" class="headerlink" title="二、脚本全貌"></a>二、脚本全貌</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">FLASH  0x00000000  62K          RAM  0x20000000  20K（到 0x20005000）</span><br><span class="line">┌───────────────┐               ┌──────────────────────────┐</span><br><span class="line">│ .init     0x00│ ← 入口        │ .data      0x20000000    │ ← LMA 在 Flash 0xb458</span><br><span class="line">│ .vector   0x04│   复位向量表   │ .bss       0x200000b0    │ ← 运行前清零</span><br><span class="line">│ .text     0x100│  代码/rodata  │ （堆，向上长）→ _heap_end │ 0x20004800</span><br><span class="line">│ ...           │               │ .stack     0x20004800    │ ← 2K，向下长</span><br><span class="line">│ .data 初值     │ 0xb458        │ _eusrstack 0x20005000    │ ← sp 初值</span><br><span class="line">└───────────────┘               └──────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p>本工程链接结果的真实地址（取自 <code>obj/CH32X035G8U.map</code> 与 <code>objdump --all-headers</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>输出段</th>
+<th>VMA</th>
+<th>大小</th>
+<th>LMA</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.init</code></td>
+<td>0x00000000</td>
+<td>0x4</td>
+<td>同 VMA</td>
+</tr>
+<tr>
+<td><code>.vector</code></td>
+<td>0x00000004</td>
+<td>0xfc</td>
+<td>同 VMA</td>
+</tr>
+<tr>
+<td><code>.text</code></td>
+<td>0x00000100</td>
+<td>0xb358</td>
+<td>同 VMA</td>
+</tr>
+<tr>
+<td><code>.data</code></td>
+<td>0x20000000</td>
+<td>0xb0</td>
+<td>0x0000b458</td>
+</tr>
+<tr>
+<td><code>.bss</code></td>
+<td>0x200000b0</td>
+<td>0x2010</td>
+<td>—（NOBITS，不占 Flash）</td>
+</tr>
+<tr>
+<td><code>.stack</code></td>
+<td>0x20004800</td>
+<td>0x800</td>
+<td>同 VMA</td>
+</tr>
+</tbody></table>
+<p>Flash 实际占用 0x0000b458 ≈ 45 KB（62K 里还剩约 17K）；RAM 里 <code>.data + .bss</code> 约 8.2 KB。</p>
+<h2 id="三、逐段精读"><a href="#三、逐段精读" class="headerlink" title="三、逐段精读"></a>三、逐段精读</h2><h3 id="3-1-头三行：入口、栈大小、PROVIDE"><a href="#3-1-头三行：入口、栈大小、PROVIDE" class="headerlink" title="3.1 头三行：入口、栈大小、PROVIDE"></a>3.1 头三行：入口、栈大小、PROVIDE</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ENTRY( _start )</span><br><span class="line">__stack_size = 2048;</span><br><span class="line">PROVIDE( _stack_size = __stack_size );</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>ENTRY(_start)</code> 决定 ELF 入口：objdump 里 <code>start address 0x00000000</code>，而 <code>_start</code> 就是 <code>.init</code> 的第一条 <code>j handle_reset</code>。</li>
+<li><code>__stack_size = 2048</code> 是<strong>普通赋值</strong>，无条件定义，map 里能看到 <code>__stack_size = 0x800</code>。</li>
+<li><code>PROVIDE(_stack_size = __stack_size)</code> 是”别处没定义我才定义”，作用是给 C 代码一个可覆盖的默认值（C 侧写 <code>extern char _stack_size[]</code> 就能拿到）。本工程没人引用，map 里就是 <code>[!provide] PROVIDE (_stack_size = __stack_size)</code>。</li>
+</ul>
+<p>📌 记住这条规律：<strong>普通赋值一定进符号表，<code>PROVIDE</code> 只在被引用时才生效</strong>。后面 <code>_etext</code>、<code>_eitcm</code>、<code>end</code>、<code>_susrstack</code> 都是 <code>[!provide]</code>。</p>
+<h3 id="3-2-MEMORY：62K-和-20K-从哪来"><a href="#3-2-MEMORY：62K-和-20K-从哪来" class="headerlink" title="3.2 MEMORY：62K 和 20K 从哪来"></a>3.2 MEMORY：62K 和 20K 从哪来</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">MEMORY</span><br><span class="line">&#123;</span><br><span class="line">	FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 62K</span><br><span class="line">	RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20K</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>CH32X035G8U6 的 ROM 是 62K、SRAM 20K（工程 <code>CH32X035G8U.wvproj</code> 里芯片描述原文就是 <code>ROM(byte): 62K, SRAM(byte): 20K</code>），所以 <code>LENGTH = 62K</code> 不是漏写，也别顺手改成 64K。</li>
+<li><code>FLASH</code> 从 0 开始，因为 QingKe 内核从 0x0 取指，Flash 被映射到 0x0。</li>
+<li><code>(rx)</code>、<code>(xrw)</code> 是权限属性，链接器用它做检查：把可写段放进只读区会直接报错。</li>
+<li>RAM 顶端 &#x3D; 0x20000000 + 20K &#x3D; <strong>0x20005000</strong>，这个数字在 3.8 节还会出现（栈顶）。</li>
+</ul>
+<h3 id="3-3-init-与-vector：必须钉在最前面的两段"><a href="#3-3-init-与-vector：必须钉在最前面的两段" class="headerlink" title="3.3 .init 与 .vector：必须钉在最前面的两段"></a>3.3 <code>.init</code> 与 <code>.vector</code>：必须钉在最前面的两段</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">.init :</span><br><span class="line">&#123;</span><br><span class="line">	_sinit = .;</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	KEEP(*(SORT_NONE(.init)))</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	_einit = .;</span><br><span class="line">&#125; &gt;FLASH AT&gt;FLASH</span><br><span class="line"></span><br><span class="line"> 	.vector :</span><br><span class="line"> 	&#123;</span><br><span class="line">     *(.vector);</span><br><span class="line">  . = ALIGN(64);</span><br><span class="line"> 	&#125; &gt;FLASH AT&gt;FLASH</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>输出段按脚本书写顺序分配地址，所以 <code>.init</code> 落在 0x0、<code>.vector</code> 紧跟其后。</li>
+<li><code>.init</code> 里放的是 startup 的 <code>_start: j handle_reset</code>（实测 0x0 处 4 字节）。<code>_sinit</code>&#x2F;<code>_einit</code> 用普通赋值框出范围，本工程没用到，但 WCH 其他芯片的 crt0 会用它跑预初始化代码。<code>KEEP</code> 是给 <code>--gc-sections</code> 的保险：<code>.init</code> 属于”靠地址生效”的段。</li>
+<li><code>.vector</code> 是本工程真正的启动表：startup 里用 <code>.word _start</code>、<code>.word NMI_Handler</code>…… 排了 <strong>63 项，共 0xfc &#x3D; 252 字节</strong>，脚本再 <code>ALIGN(64)</code> 把尾部顶到 64 字节边界，于是 <code>.text</code> 正好从 <strong>0x100</strong> 开始（实测）。</li>
+<li>硬件侧的呼应：<code>handle_reset</code> 里 <code>mtvec = _vector_base | 3</code>，低两位的模式位 3 表示按向量表取入口地址（startup 注释原话是 “Configure the interrupt vector table recognition mode and entry address mode”）。</li>
+<li><code>.vector</code> 没写 <code>KEEP</code>，但它也不会被 <code>--gc-sections</code> 丢掉：复位代码里有 <code>la t0, _vector_base</code>，这个重定位让 <code>.vector</code> 变成”被引用”。同理，表里的 <code>.word NMI_Handler</code> 之类引用又把所有中断处理函数（哪怕是 weak 空实现）保住。</li>
+</ul>
+<p>📌 由此得出一条实战结论：<strong>中断服务函数只要被向量表引用，就不会被 <code>--gc-sections</code> 删掉</strong>；反过来，想裁掉某个用不到的中断路由，得动向量表，而不是指望链接器。</p>
+<h3 id="3-4-text-x2F-fini：代码与只读数据"><a href="#3-4-text-x2F-fini：代码与只读数据" class="headerlink" title="3.4 .text &#x2F; .fini：代码与只读数据"></a>3.4 <code>.text</code> &#x2F; <code>.fini</code>：代码与只读数据</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">.text :</span><br><span class="line">&#123;</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	*(.text)</span><br><span class="line">	*(.text.*)</span><br><span class="line">	*(.rodata)</span><br><span class="line">	*(.rodata*)</span><br><span class="line">	*(.gnu.linkonce.t.*)</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">&#125; &gt;FLASH AT&gt;FLASH</span><br><span class="line"></span><br><span class="line">.fini :</span><br><span class="line">&#123;</span><br><span class="line">	KEEP(*(SORT_NONE(.fini)))</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">&#125; &gt;FLASH AT&gt;FLASH</span><br><span class="line"></span><br><span class="line">PROVIDE( _etext = . );</span><br><span class="line">PROVIDE( _eitcm = . );</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>.rodata</code> 被并进 <code>.text</code>，所以 <code>const</code> 数组、字符串常量留在 Flash，不占 RAM——这是脚本帮你省 RAM 的关键一条。</li>
+<li><code>*(.text.*)</code> 负责收 <code>-ffunction-sections</code> 拆出来的每个函数段；输入段顺序近似链接顺序，<code>--gc-sections</code> 会把没被引用的成员剔掉。</li>
+<li><code>.fini</code> 与 <code>.init</code> 对称，同样 <code>KEEP</code>。</li>
+<li><code>_etext</code>（代码结束）、<code>_eitcm</code>（ITCM 别名，WCH 模板遗留）都是 <code>PROVIDE</code>：本工程没人引用，map 里是 <code>[!provide]</code>。想用就在 C 里 <code>extern char _etext[];</code>，链接器这才把它填上。</li>
+</ul>
+<h3 id="3-5-C-构造表五连：模板很长，本工程是空的"><a href="#3-5-C-构造表五连：模板很长，本工程是空的" class="headerlink" title="3.5 C++ 构造表五连：模板很长，本工程是空的"></a>3.5 C++ 构造表五连：模板很长，本工程是空的</h3><p><code>.preinit_array</code>、<code>.init_array</code>、<code>.fini_array</code>、<code>.ctors</code>、<code>.dtors</code> 这五段是 GCC 的标准套路，作用是<strong>把散落在各个目标文件里的 C++ 全局对象构造函数收集成表</strong>，运行时由 <code>__libc_init_array()</code> 遍历调用：</p>
+<ul>
+<li><code>.init_array</code> 用 <code>SORT_BY_INIT_PRIORITY(.init_array.*)</code> 排序，决定 C++ 全局对象的构造顺序。</li>
+<li><code>EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o)</code> 把 CRT 自带的辅助段排除在外，只留用户构造器。</li>
+<li><code>.ctors</code>&#x2F;<code>.dtors</code> 里那段长注释讲的就是”<code>crtbegin.o</code> 必须排最前、<code>crtend.o</code> 必须排最后”，因为 <code>__init_array_start/end</code> 的边界由它们标定。</li>
+</ul>
+<p>⚠ 本工程用 <code>-nostartfiles</code>，既不链 <code>crtbegin.o</code>，启动代码 <code>handle_reset</code> 也只做 <code>jal SystemInit</code> → <code>mret</code> 到 <code>main</code>，**从来没有调用 <code>__libc_init_array</code>**。所以这五段在 map 里尺寸全是 0，<code>__init_array_start/end</code> 也都是 <code>[!provide]</code>。结论：这份脚本对 C 工程是”纯摆设”，但写 C++（或依赖 <code>__attribute__((constructor))</code>）时必须补上启动侧的调用。</p>
+<h3 id="3-6-dalign-x2F-dlalign-x2F-data：VMA-与-LMA-分离"><a href="#3-6-dalign-x2F-dlalign-x2F-data：VMA-与-LMA-分离" class="headerlink" title="3.6 .dalign &#x2F; .dlalign &#x2F; .data：VMA 与 LMA 分离"></a>3.6 <code>.dalign</code> &#x2F; <code>.dlalign</code> &#x2F; <code>.data</code>：VMA 与 LMA 分离</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">.dalign :</span><br><span class="line">&#123;</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	PROVIDE(_data_vma = .);</span><br><span class="line">&#125; &gt;RAM AT&gt;FLASH</span><br><span class="line"></span><br><span class="line">.dlalign :</span><br><span class="line">&#123;</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	PROVIDE(_data_lma = .);</span><br><span class="line">&#125; &gt;FLASH AT&gt;FLASH</span><br><span class="line"></span><br><span class="line">.data :</span><br><span class="line">&#123;</span><br><span class="line">	*(.gnu.linkonce.r.*)</span><br><span class="line">	*(.data .data.*)</span><br><span class="line">	*(.gnu.linkonce.d.*)</span><br><span class="line">	. = ALIGN(8);</span><br><span class="line">	PROVIDE( __global_pointer$ = . + 0x800 );</span><br><span class="line">	*(.sdata .sdata.*)</span><br><span class="line">	*(.sdata2.*)</span><br><span class="line">	*(.gnu.linkonce.s.*)</span><br><span class="line">	. = ALIGN(8);</span><br><span class="line">	*(.srodata.cst16) ... *(.srodata .srodata.*)</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	PROVIDE( _edata = .);</span><br><span class="line">&#125; &gt;RAM AT&gt;FLASH</span><br></pre></td></tr></table></figure>
+
+<p>这是整份脚本唯一需要动脑的地方，要点三条：</p>
+<ol>
+<li>**两个零长段的唯一作用是”取地址”**。<code>.dalign</code> 声明 <code>&gt;RAM</code>，所以它里面的 <code>.</code> 是 RAM 地址 → <code>_data_vma = 0x20000000</code>；<code>.dlalign</code> 声明 <code>&gt;FLASH</code>，同一时刻它的 <code>.</code> 是 Flash 地址 → <code>_data_lma = 0x0000b458</code>。两者尺寸都是 0，不占空间，纯粹为了绕开”一个段只能有一个 VMA”的限制。</li>
+<li><strong>启动代码怎么用它们</strong>（<code>startup_ch32x035.S</code>）：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">	la a0, _data_lma</span><br><span class="line">	la a1, _data_vma</span><br><span class="line">	la a2, _edata</span><br><span class="line">	bgeu a1, a2, 2f</span><br><span class="line">1:	lw t0, (a0)</span><br><span class="line">	sw t0, (a1)</span><br><span class="line">	addi a0, a0, 4</span><br><span class="line">	addi a1, a1, 4</span><br><span class="line">	bltu a1, a2, 1b</span><br><span class="line">2:</span><br></pre></td></tr></table></figure>
+
+<p>   一次性搬 0xb0 字节（实测 <code>.data</code> 大小）；<code>.bss</code> 那段循环则把 <code>_sbss</code>..<code>_ebss</code> 清零。</p>
+<ol start="3">
+<li><code>__global_pointer$ = . + 0x800</code> 是 RISC-V 专属：编译器把 <code>-msmall-data-limit=8</code> 判定的小变量放进 <code>.sdata/.sdata2/.sbss</code>，用 <strong>gp 相对寻址</strong>（偏移 ±2K）访问，省掉一条 <code>lui</code>。gp 指向 small data 区<strong>中间</strong>（前移 0x800），窗口才罩得住整片区域。启动代码里 <code>la gp, __global_pointer$</code> 外面套了 <code>.option norelax</code>——否则这条 <code>la</code> 自己会被放松成 gp 相对的，鸡生蛋问题。实测 gp &#x3D; 0x20000880，<code>.sdata</code> 起点 0x20000080，窗口 0x20000080 ~ 0x20001080。</li>
+</ol>
+<p>⚠ <code>.data</code> 的第一行 <code>*(.gnu.linkonce.r.*)</code> 是模板遗留：把历史风格的只读数据也塞进 RAM 段，会白占 RAM。本工程这一段没有成员，可以先留着不管。</p>
+<h3 id="3-7-bss-与-end"><a href="#3-7-bss-与-end" class="headerlink" title="3.7 .bss 与 _end"></a>3.7 <code>.bss</code> 与 <code>_end</code></h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">.bss :</span><br><span class="line">&#123;</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	PROVIDE( _sbss = .);</span><br><span class="line"> 	    *(.sbss*)</span><br><span class="line">       *(.gnu.linkonce.sb.*)</span><br><span class="line">	*(.bss*)</span><br><span class="line">    	*(.gnu.linkonce.b.*)</span><br><span class="line">	*(COMMON*)</span><br><span class="line">	. = ALIGN(4);</span><br><span class="line">	PROVIDE( _ebss = .);</span><br><span class="line">&#125; &gt;RAM AT&gt;FLASH</span><br><span class="line"></span><br><span class="line">PROVIDE( _end = _ebss);</span><br><span class="line">PROVIDE( end = . );</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>.bss</code> 是 <strong>NOBITS</strong>：只占地址、不占文件空间。虽然写了 <code>AT&gt;FLASH</code>，objdump 的 program header 里 <code>filesz</code> 只覆盖 <code>.data</code>（0xb0），<code>.bss</code> 不会被烧进 Flash，清零完全靠启动代码。实测 <code>_sbss = 0x200000b0</code>、<code>_ebss = 0x200020c0</code>（约 8.2 KB）。</li>
+<li><code>*(COMMON*)</code> 收 <code>-fno-common</code> 时代残留的暂定定义；<code>-fno-common</code> 已经在编译选项里，所以基本是空的。</li>
+<li><code>_end</code> &#x2F; <code>end</code> 是 newlib 的历史约定符号，<code>_sbrk()</code> 用它当堆起点，本工程 <code>Debug/debug.c</code> 就是这么写的（见 3.8）。</li>
+</ul>
+<h3 id="3-8-stack：栈、-heap-end-与-sbrk"><a href="#3-8-stack：栈、-heap-end-与-sbrk" class="headerlink" title="3.8 .stack：栈、_heap_end 与 _sbrk"></a>3.8 <code>.stack</code>：栈、<code>_heap_end</code> 与 <code>_sbrk</code></h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">.stack ORIGIN(RAM) + LENGTH(RAM) - __stack_size :</span><br><span class="line">&#123;</span><br><span class="line">    PROVIDE( _heap_end = . );</span><br><span class="line">    . = ALIGN(4);</span><br><span class="line">    PROVIDE(_susrstack = . );</span><br><span class="line">    . = . + __stack_size;</span><br><span class="line">    PROVIDE( _eusrstack = .);</span><br><span class="line">&#125; &gt;RAM</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>段名后面直接用<strong>绝对表达式</strong>给地址：<code>0x20000000 + 0x5000 - 0x800 = 0x20004800</code>，与实测一致。这是”栈必须贴住 RAM 顶端”的标准写法，改 RAM 大小或栈大小时自动跟随。</li>
+<li>四个符号各司其职：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>实测值</th>
+<th>谁在用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_heap_end</code></td>
+<td>0x20004800</td>
+<td>工程 <code>_sbrk()</code> 的堆上界</td>
+</tr>
+<tr>
+<td><code>_susrstack</code></td>
+<td>0x20004800</td>
+<td>无引用（<code>[!provide]</code>），留给需要栈底的代码</td>
+</tr>
+<tr>
+<td><code>_eusrstack</code></td>
+<td>0x20005000</td>
+<td>startup 里 <code>la sp, _eusrstack</code>，即 sp 初值</td>
+</tr>
+<tr>
+<td><code>__stack_size</code></td>
+<td>0x800</td>
+<td>脚本自身</td>
+</tr>
+</tbody></table>
+<ul>
+<li>堆的真实区间由 <code>_sbrk()</code> 决定，<code>debug.c</code>：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *_sbrk(<span class="type">ptrdiff_t</span> incr)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">extern</span> <span class="type">char</span> _end[];</span><br><span class="line">    <span class="keyword">extern</span> <span class="type">char</span> _heap_end[];</span><br><span class="line">    <span class="type">static</span> <span class="type">char</span> *curbrk = _end;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((curbrk + incr &lt; _end) || (curbrk + incr &gt; _heap_end))</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span> - <span class="number">1</span>;</span><br><span class="line">    curbrk += incr;</span><br><span class="line">    <span class="keyword">return</span> curbrk - incr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>   于是堆 &#x3D; <code>0x200020c0</code>（<code>_end</code>）→ <code>0x20004800</code>（<code>_heap_end</code>），约 9.8 KB。**<code>_heap_end</code> 就是这个工程 malloc 的上限**；脚本一改 RAM 布局，堆边界自动跟着变，但要记得 <code>_sbrk</code> 是工程自己写的，不是库给的。</p>
+<p>⚠ 栈向下长、堆向上长，二者之间没有保护区：栈溢出会直接踩进堆，而 <code>_sbrk</code> 的边界检查帮不上忙（它只管堆自己）。真要防，得靠硬件栈（startup 里 <code>csrw 0x804, 3</code> 打开的 HPE）或 MPU、看门狗。</p>
+<h2 id="四、同族脚本的几处差异"><a href="#四、同族脚本的几处差异" class="headerlink" title="四、同族脚本的几处差异"></a>四、同族脚本的几处差异</h2><p>同一套 EVT 里其他例程的 <code>Ld/Link.ld</code> 与本工程只差几行，正好当”照着改的模板”：</p>
+<table>
+<thead>
+<tr>
+<th>例程</th>
+<th>差异</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>IAP/USB_UART/CH32X035_APP</code></td>
+<td><code>FLASH ORIGIN = 0x5000, LENGTH = 42K</code></td>
+<td>APP 从 IAP 之后开始：loader 里 <code>User_APP_Addr_offset = 0x5000</code>，两者必须一致；42K 由 0x5000 + 42K &#x3D; 62K 反推</td>
+</tr>
+<tr>
+<td><code>USB/USBFS/HOST_IAP/APP/Ld_APP</code></td>
+<td><code>ORIGIN = 0x6000, LENGTH = 40K</code></td>
+<td>同上，只是偏移不同</td>
+</tr>
+<tr>
+<td><code>RunInRam/RunInRAM_Select</code></td>
+<td>多 <code>.highcodelalign</code>（<code>&gt;FLASH</code>，给 <code>_highcode_lma</code>）+ <code>.highcode</code>（<code>&gt;RAM AT&gt;FLASH</code>）</td>
+<td>把 <code>__attribute__((section(&quot;.highcode&quot;)))</code> 的函数放进 RAM 跑（比 Flash 快）；startup 里多一段用 <code>_highcode_lma/_highcode_vma_start/_highcode_vma_end</code> 的搬运循环。<strong>这就是 3.6 节 VMA&#x2F;LMA 套路的复用</strong></td>
+</tr>
+<tr>
+<td><code>FLASH/BootAsUser</code></td>
+<td>多一个区域 <code>BFLASH (rx) : ORIGIN = 0x1fff0000, LENGTH = 3328</code>，并新增 <code>.bbinit</code>（收 <code>.bxx</code>&#x2F;<code>.Bcode</code>，<code>&gt;BFLASH AT&gt;BFLASH</code>）</td>
+<td>把 <code>__attribute__((section(&quot;.Bcode&quot;)))</code> 的函数放到 BOOT FLASH 区；main.c 注明该区不支持用户擦除、需用 WCH-LinkUtility ≥ V2.40 按 0x1FFF0000 下载，且跨区跳转约有 1µs 延迟</td>
+</tr>
+<tr>
+<td><code>FreeRTOS/FreeRTOS_Core</code></td>
+<td><code>.stack</code> 末尾多一行 <code>__freertos_irq_stack_top = .;</code></td>
+<td>port.c 用它当中断栈顶（实测 0x20005000，等于 <code>_eusrstack</code>），即”任务启动前 main 用的那段栈被回收做 ISR 栈”</td>
+</tr>
+<tr>
+<td><code>RT-Thread/rt-thread</code></td>
+<td><code>.text</code> 里追加 <code>FSymTab</code>&#x2F;<code>VSymTab</code>&#x2F;<code>.rti_fn*</code>&#x2F;<code>RTMSymTab</code> 段与 <code>__fsymtab_start/end</code>、<code>__rt_init_start/end</code>、<code>__rtmsymtab_start/end</code></td>
+<td>RT-Thread 的自动初始化与 MSH 命令表全靠这些符号，用 <code>KEEP(*(SORT(.rti_fn*)))</code> 保证不被 <code>--gc-sections</code> 干掉</td>
+</tr>
+</tbody></table>
+<h2 id="五、改脚本时的坑"><a href="#五、改脚本时的坑" class="headerlink" title="五、改脚本时的坑"></a>五、改脚本时的坑</h2><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.data</code> 漏 <code>AT&gt;FLASH</code></td>
+<td>初值会被放到 RAM 地址，烧录后 RAM 里是随机值，启动搬运循环也拿不到正确源地址</td>
+</tr>
+<tr>
+<td>忘了 <code>KEEP</code></td>
+<td><code>--gc-sections</code> 下”只靠地址生效”的段（构造表、RT-Thread 初始化表）会被静默删掉，表现为”函数明明写了却没执行”</td>
+</tr>
+<tr>
+<td>改了 <code>LENGTH</code> 没复核堆栈</td>
+<td>栈用 <code>ORIGIN + LENGTH - __stack_size</code> 自动跟随；堆是 <code>_end</code> → <code>_heap_end</code>，两边都动，务必重看 map</td>
+</tr>
+<tr>
+<td>把 <code>.rodata</code> 挪进 RAM</td>
+<td>RAM 只有 20K，<code>.bss</code> 已占 8.2K、栈 2K；<code>const</code> 数据留在 Flash 才是默认且正确的选择</td>
+</tr>
+<tr>
+<td>只改脚本不看 map</td>
+<td>每处结论都该在 <code>CH32X035G8U.map</code> 里对得上：段地址、<code>[!provide]</code>、<code>*fill*</code> 都能暴露对齐浪费</td>
+</tr>
+<tr>
+<td>62K 写成 64K</td>
+<td>该型号可用 ROM 就是 62K</td>
+</tr>
+</tbody></table>
+<h2 id="六、速查表"><a href="#六、速查表" class="headerlink" title="六、速查表"></a>六、速查表</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>答案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>程序从哪开始跑？</td>
+<td><code>ENTRY(_start)</code> → 0x0 的 <code>j handle_reset</code>；<code>mtvec</code> 指向 0x4 处的 <code>.vector</code> 表</td>
+</tr>
+<tr>
+<td><code>.data</code> 的初值在哪？</td>
+<td>Flash，LMA &#x3D; 0xb458（<code>_data_lma</code>）；运行时搬到 RAM 0x20000000（<code>_data_vma</code>）</td>
+</tr>
+<tr>
+<td>为什么要有 <code>.dalign</code>&#x2F;<code>.dlalign</code>？</td>
+<td>一个段只能有一个 VMA；用两个零长段分别在 RAM&#x2F;Flash 区域”读一次 <code>.</code>“，才拿到一对配对地址</td>
+</tr>
+<tr>
+<td><code>__global_pointer$</code> 为什么要 <code>+0x800</code>？</td>
+<td>gp 相对寻址窗口是 ±2K，锚点放中间才能罩住整片 small data</td>
+</tr>
+<tr>
+<td>栈和堆在哪？</td>
+<td>栈：0x20004800 ~ 0x20005000（2K，sp 初值 0x20005000）；堆：0x200020c0 ~ 0x20004800（约 9.8K，<code>_end</code> → <code>_heap_end</code>）</td>
+</tr>
+<tr>
+<td><code>PROVIDE</code> 和普通赋值差在哪？</td>
+<td><code>PROVIDE</code> 只在被引用且别处没定义时才出现（否则 map 显示 <code>[!provide]</code>）；<code>=</code> 无条件定义</td>
+</tr>
+<tr>
+<td>为什么 <code>_etext</code> 在 map 里找不到？</td>
+<td>没人引用这个 <code>PROVIDE</code>，链接器就没定义它；C 里 <code>extern char _etext[];</code> 一引用就会出现</td>
+</tr>
+<tr>
+<td>IAP 的 APP 为什么要改 <code>ORIGIN</code>？</td>
+<td>loader 跳转地址是 0x5000，APP 的链接地址必须与之一致，否则所有绝对地址全错</td>
+</tr>
+</tbody></table>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E8%AF%BB%E5%AE%83%E4%B9%8B%E5%89%8D%E8%A6%81%E7%94%A8%E7%9A%84%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">一、读它之前要用的知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-section-%E4%B8%8E%E2%80%9D%E6%AE%B5%E2%80%9D"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 section 与”段”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-VMA-%E4%B8%8E-LMA"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 VMA 与 LMA</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E8%84%9A%E6%9C%AC%E5%85%B3%E9%94%AE%E5%AD%97%E9%80%9F%E8%AE%A4"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 脚本关键字速认</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-%E5%B7%A5%E5%85%B7%E9%93%BE%E4%B8%80%E4%BE%A7%E7%9A%84%E5%BC%80%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 工具链一侧的开关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E8%84%9A%E6%9C%AC%E5%85%A8%E8%B2%8C"><span class="toc-number">3.</span> <span class="toc-text">二、脚本全貌</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E9%80%90%E6%AE%B5%E7%B2%BE%E8%AF%BB"><span class="toc-number">4.</span> <span class="toc-text">三、逐段精读</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%A4%B4%E4%B8%89%E8%A1%8C%EF%BC%9A%E5%85%A5%E5%8F%A3%E3%80%81%E6%A0%88%E5%A4%A7%E5%B0%8F%E3%80%81PROVIDE"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 头三行：入口、栈大小、PROVIDE</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-MEMORY%EF%BC%9A62K-%E5%92%8C-20K-%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 MEMORY：62K 和 20K 从哪来</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-init-%E4%B8%8E-vector%EF%BC%9A%E5%BF%85%E9%A1%BB%E9%92%89%E5%9C%A8%E6%9C%80%E5%89%8D%E9%9D%A2%E7%9A%84%E4%B8%A4%E6%AE%B5"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 .init 与 .vector：必须钉在最前面的两段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-4-text-x2F-fini%EF%BC%9A%E4%BB%A3%E7%A0%81%E4%B8%8E%E5%8F%AA%E8%AF%BB%E6%95%B0%E6%8D%AE"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 .text &#x2F; .fini：代码与只读数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-5-C-%E6%9E%84%E9%80%A0%E8%A1%A8%E4%BA%94%E8%BF%9E%EF%BC%9A%E6%A8%A1%E6%9D%BF%E5%BE%88%E9%95%BF%EF%BC%8C%E6%9C%AC%E5%B7%A5%E7%A8%8B%E6%98%AF%E7%A9%BA%E7%9A%84"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 C++ 构造表五连：模板很长，本工程是空的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-6-dalign-x2F-dlalign-x2F-data%EF%BC%9AVMA-%E4%B8%8E-LMA-%E5%88%86%E7%A6%BB"><span class="toc-number">4.6.</span> <span class="toc-text">3.6 .dalign &#x2F; .dlalign &#x2F; .data：VMA 与 LMA 分离</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-7-bss-%E4%B8%8E-end"><span class="toc-number">4.7.</span> <span class="toc-text">3.7 .bss 与 _end</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-8-stack%EF%BC%9A%E6%A0%88%E3%80%81-heap-end-%E4%B8%8E-sbrk"><span class="toc-number">4.8.</span> <span class="toc-text">3.8 .stack：栈、_heap_end 与 _sbrk</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%90%8C%E6%97%8F%E8%84%9A%E6%9C%AC%E7%9A%84%E5%87%A0%E5%A4%84%E5%B7%AE%E5%BC%82"><span class="toc-number">5.</span> <span class="toc-text">四、同族脚本的几处差异</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E6%94%B9%E8%84%9A%E6%9C%AC%E6%97%B6%E7%9A%84%E5%9D%91"><span class="toc-number">6.</span> <span class="toc-text">五、改脚本时的坑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">7.</span> <span class="toc-text">六、速查表</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&text=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&is_video=false&description=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=以 CH32X035 的 Link.ld 为例：链接脚本文件精读&body=Check out this article: http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&title=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&name=以 CH32X035 的 Link.ld 为例：链接脚本文件精读&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;链接脚本只干三件事：&lt;strong&gt;排布&lt;/strong&gt;（谁进 Flash、谁进 RAM）、&lt;strong&gt;接线&lt;/strong&gt;（给启动代码和 C 库提供 &lt;code&gt;_data_lma&lt;/code&gt;、&lt;code&gt;_sbss&lt;/code&gt;、&lt;code&gt;_eusrstack&lt;/code&gt;、&lt;code&gt;_heap_end&lt;/code&gt; 等符号）、&lt;strong&gt;兜底&lt;/strong&gt;（把 C++ 构造表收进来）。&lt;/li&gt;
+&lt;li&gt;唯一的技巧是 &lt;strong&gt;VMA&amp;#x2F;LMA 分离&lt;/strong&gt;：&lt;code&gt;.data&lt;/code&gt; 运行在 RAM、初值在 Flash，靠两个零长段 &lt;code&gt;.dalign&lt;/code&gt;&amp;#x2F;&lt;code&gt;.dlalign&lt;/code&gt; 取到 &lt;code&gt;_data_vma&lt;/code&gt;&amp;#x2F;&lt;code&gt;_data_lma&lt;/code&gt; 一对地址。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;.stack&lt;/code&gt; 用绝对表达式钉在 RAM 顶端，它的起点 &lt;code&gt;_heap_end&lt;/code&gt; 就是工程 &lt;code&gt;_sbrk()&lt;/code&gt; 的堆上限。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PROVIDE&lt;/code&gt; 的符号&lt;strong&gt;没人引用就不进符号表&lt;/strong&gt;（map 里显示 &lt;code&gt;[!provide]&lt;/code&gt;），普通赋值则一定在。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/18/knowledge/embedded/ch32x035-linker-script/&t=以 CH32X035 的 Link.ld 为例：链接脚本文件精读"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
