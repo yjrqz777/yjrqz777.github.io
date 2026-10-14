@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="梳理从应用到内核的三级调用链，区分 C 标准库函数与 Linux 系统调用，并说明头文件、man 手册、&#x2F;dev、&#x2F;proc、&#x2F;sys 各自提供哪一层接口。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="libc、系统调用与内核接口">
+<meta property="og:url" content="http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="梳理从应用到内核的三级调用链，区分 C 标准库函数与 Linux 系统调用，并说明头文件、man 手册、&#x2F;dev、&#x2F;proc、&#x2F;sys 各自提供哪一层接口。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-01T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:43.879Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="libc">
+<meta property="article:tag" content="系统调用">
+<meta property="article:tag" content="POSIX">
+<meta property="article:tag" content="文件接口">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>libc、系统调用与内核接口</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&text=libc、系统调用与内核接口"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&is_video=false&description=libc、系统调用与内核接口"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=libc、系统调用与内核接口&body=Check out this article: http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&name=libc、系统调用与内核接口&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;典型调用链是应用程序、libc&amp;#x2F;POSIX API、syscall、Linux Kernel，&lt;code&gt;write()&lt;/code&gt; 由 libc 提供用户态包装后进入内核。&lt;/li&gt;
+&lt;li&gt;文件、网络、进程、内存、设备控制都有对应的常见接口：&lt;code&gt;open&lt;/code&gt;&amp;#x2F;&lt;code&gt;read&lt;/code&gt;&amp;#x2F;&lt;code&gt;write&lt;/code&gt;、&lt;code&gt;socket&lt;/code&gt;&amp;#x2F;&lt;code&gt;connect&lt;/code&gt;、&lt;code&gt;fork&lt;/code&gt;&amp;#x2F;&lt;code&gt;execve&lt;/code&gt;、&lt;code&gt;mmap&lt;/code&gt;、&lt;code&gt;ioctl&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;strlen&lt;/code&gt;、&lt;code&gt;strcmp&lt;/code&gt;、&lt;code&gt;memcpy&lt;/code&gt; 完全在用户空间完成，不进内核；C 标准库函数和 Linux 系统调用不是一回事。&lt;/li&gt;
+&lt;li&gt;头文件只提供函数声明、结构体、宏、常量和类型，真正功能由 libc 和 Kernel 共同完成。&lt;/li&gt;
+&lt;li&gt;Linux 的接口不只是 syscall：&lt;code&gt;/dev&lt;/code&gt;、&lt;code&gt;/proc&lt;/code&gt;、&lt;code&gt;/sys&lt;/code&gt; 里的文件同样是访问内核的接口。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&t=libc、系统调用与内核接口"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-Kernel"><span class="toc-number">2.</span> <span class="toc-text">1. 用户程序如何使用 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%B8%B8%E8%A7%81%E6%8E%A5%E5%8F%A3"><span class="toc-number">3.</span> <span class="toc-text">2. 常见接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E4%B8%8D%E6%98%AF%E6%89%80%E6%9C%89-libc-%E5%87%BD%E6%95%B0%E9%83%BD%E4%BC%9A%E8%BF%9B%E5%85%A5-Kernel"><span class="toc-number">4.</span> <span class="toc-text">3. 不是所有 libc 函数都会进入 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%A4%B4%E6%96%87%E4%BB%B6%E5%91%8A%E8%AF%89%E4%BD%A0-API-%E6%80%8E%E4%B9%88%E4%BD%BF%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">4. 头文件告诉你 API 怎么使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%80%8E%E4%B9%88%E6%9F%A5%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3"><span class="toc-number">6.</span> <span class="toc-text">5. 怎么查接口文档</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-dev%E3%80%81-proc%E3%80%81-sys-%E4%B9%9F%E6%98%AF%E6%8E%A5%E5%8F%A3"><span class="toc-number">7.</span> <span class="toc-text">6. &#x2F;dev、&#x2F;proc、&#x2F;sys 也是接口</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        libc、系统调用与内核接口
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-10-01T02:00:00.000Z" class="dt-published" itemprop="datePublished">2026-10-01</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/POSIX/" rel="tag">POSIX</a>, <a class="p-category" href="/cactus-theme/tags/libc/" rel="tag">libc</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>, <a class="p-category" href="/cactus-theme/tags/%E6%96%87%E4%BB%B6%E6%8E%A5%E5%8F%A3/" rel="tag">文件接口</a>, <a class="p-category" href="/cactus-theme/tags/%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" rel="tag">系统调用</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>典型调用链是应用程序、libc&#x2F;POSIX API、syscall、Linux Kernel，<code>write()</code> 由 libc 提供用户态包装后进入内核。</li>
+<li>文件、网络、进程、内存、设备控制都有对应的常见接口：<code>open</code>&#x2F;<code>read</code>&#x2F;<code>write</code>、<code>socket</code>&#x2F;<code>connect</code>、<code>fork</code>&#x2F;<code>execve</code>、<code>mmap</code>、<code>ioctl</code>。</li>
+<li><code>strlen</code>、<code>strcmp</code>、<code>memcpy</code> 完全在用户空间完成，不进内核；C 标准库函数和 Linux 系统调用不是一回事。</li>
+<li>头文件只提供函数声明、结构体、宏、常量和类型，真正功能由 libc 和 Kernel 共同完成。</li>
+<li>Linux 的接口不只是 syscall：<code>/dev</code>、<code>/proc</code>、<code>/sys</code> 里的文件同样是访问内核的接口。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-用户程序如何使用-Kernel"><a href="#1-用户程序如何使用-Kernel" class="headerlink" title="1. 用户程序如何使用 Kernel"></a>1. 用户程序如何使用 Kernel</h2><p>典型调用链：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">应用程序</span><br><span class="line"> ↓</span><br><span class="line">libc / POSIX API</span><br><span class="line"> ↓</span><br><span class="line">syscall</span><br><span class="line"> ↓</span><br><span class="line">Linux Kernel</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">write(fd, buf, len);</span><br></pre></td></tr></table></figure>
+
+<p>通常由 libc 提供用户态包装，然后进入内核。</p>
+<h2 id="2-常见接口"><a href="#2-常见接口" class="headerlink" title="2. 常见接口"></a>2. 常见接口</h2><p>文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">open()</span><br><span class="line">read()</span><br><span class="line">write()</span><br><span class="line">close()</span><br></pre></td></tr></table></figure>
+
+<p>网络：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">socket()</span><br><span class="line">connect()</span><br><span class="line">send()</span><br><span class="line">recv()</span><br></pre></td></tr></table></figure>
+
+<p>进程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fork()</span><br><span class="line">execve()</span><br><span class="line">wait()</span><br></pre></td></tr></table></figure>
+
+<p>内存：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mmap()</span><br></pre></td></tr></table></figure>
+
+<p>设备控制：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ioctl()</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-不是所有-libc-函数都会进入-Kernel"><a href="#3-不是所有-libc-函数都会进入-Kernel" class="headerlink" title="3. 不是所有 libc 函数都会进入 Kernel"></a>3. 不是所有 libc 函数都会进入 Kernel</h2><p>例如：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">strlen</span>()</span><br><span class="line"><span class="built_in">strcmp</span>()</span><br><span class="line"><span class="built_in">memcpy</span>()</span><br></pre></td></tr></table></figure>
+
+<p>通常完全在用户空间完成。</p>
+<p>而：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">read()</span><br><span class="line">write()</span><br><span class="line">socket()</span><br></pre></td></tr></table></figure>
+
+<p>需要 Kernel 提供对应系统调用。</p>
+<p>因此：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C 标准库函数</span><br></pre></td></tr></table></figure>
+
+<p>和：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Linux 系统调用</span><br></pre></td></tr></table></figure>
+
+<p>不是一回事。</p>
+<h2 id="4-头文件告诉你-API-怎么使用"><a href="#4-头文件告诉你-API-怎么使用" class="headerlink" title="4. 头文件告诉你 API 怎么使用"></a>4. 头文件告诉你 API 怎么使用</h2><p>例如 socket 程序：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>头文件提供：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">函数声明</span><br><span class="line">结构体</span><br><span class="line">宏</span><br><span class="line">常量</span><br><span class="line">类型</span><br></pre></td></tr></table></figure>
+
+<p>但真正的功能由 libc 和 Kernel 共同完成。</p>
+<h2 id="5-怎么查接口文档"><a href="#5-怎么查接口文档" class="headerlink" title="5. 怎么查接口文档"></a>5. 怎么查接口文档</h2><p>Linux 上常用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">man 2 socket</span><br><span class="line">man 2 open</span><br><span class="line">man 2 <span class="built_in">read</span></span><br><span class="line">man 3 getaddrinfo</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">man 2</span><br><span class="line">= 系统调用</span><br><span class="line"></span><br><span class="line">man 3</span><br><span class="line">= 库函数</span><br></pre></td></tr></table></figure>
+
+<h2 id="6-dev、-proc、-sys-也是接口"><a href="#6-dev、-proc、-sys-也是接口" class="headerlink" title="6. /dev、/proc、/sys 也是接口"></a>6. <code>/dev</code>、<code>/proc</code>、<code>/sys</code> 也是接口</h2><p>Linux 并不只有 syscall。</p>
+<p>用户空间还经常通过：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/dev/*</span><br><span class="line">/proc/*</span><br><span class="line">/sys/*</span><br></pre></td></tr></table></figure>
+
+<p>访问内核。</p>
+<p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/dev/ttyS0</span><br></pre></td></tr></table></figure>
+
+<p>代表串口设备接口。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/proc/cpuinfo</span><br></pre></td></tr></table></figure>
+
+<p>暴露 CPU 信息。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/sys/class/net/</span><br></pre></td></tr></table></figure>
+
+<p>暴露网络设备对象。</p>
+<p>所以 Linux 应用看到的「接口」可能是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">函数</span><br><span class="line">文件描述符</span><br><span class="line">设备节点</span><br><span class="line">虚拟文件</span><br><span class="line">socket</span><br><span class="line">ioctl</span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-Kernel"><span class="toc-number">2.</span> <span class="toc-text">1. 用户程序如何使用 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%B8%B8%E8%A7%81%E6%8E%A5%E5%8F%A3"><span class="toc-number">3.</span> <span class="toc-text">2. 常见接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E4%B8%8D%E6%98%AF%E6%89%80%E6%9C%89-libc-%E5%87%BD%E6%95%B0%E9%83%BD%E4%BC%9A%E8%BF%9B%E5%85%A5-Kernel"><span class="toc-number">4.</span> <span class="toc-text">3. 不是所有 libc 函数都会进入 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%A4%B4%E6%96%87%E4%BB%B6%E5%91%8A%E8%AF%89%E4%BD%A0-API-%E6%80%8E%E4%B9%88%E4%BD%BF%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">4. 头文件告诉你 API 怎么使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%80%8E%E4%B9%88%E6%9F%A5%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3"><span class="toc-number">6.</span> <span class="toc-text">5. 怎么查接口文档</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-dev%E3%80%81-proc%E3%80%81-sys-%E4%B9%9F%E6%98%AF%E6%8E%A5%E5%8F%A3"><span class="toc-number">7.</span> <span class="toc-text">6. &#x2F;dev、&#x2F;proc、&#x2F;sys 也是接口</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&text=libc、系统调用与内核接口"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&is_video=false&description=libc、系统调用与内核接口"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=libc、系统调用与内核接口&body=Check out this article: http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&title=libc、系统调用与内核接口"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&name=libc、系统调用与内核接口&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;典型调用链是应用程序、libc&amp;#x2F;POSIX API、syscall、Linux Kernel，&lt;code&gt;write()&lt;/code&gt; 由 libc 提供用户态包装后进入内核。&lt;/li&gt;
+&lt;li&gt;文件、网络、进程、内存、设备控制都有对应的常见接口：&lt;code&gt;open&lt;/code&gt;&amp;#x2F;&lt;code&gt;read&lt;/code&gt;&amp;#x2F;&lt;code&gt;write&lt;/code&gt;、&lt;code&gt;socket&lt;/code&gt;&amp;#x2F;&lt;code&gt;connect&lt;/code&gt;、&lt;code&gt;fork&lt;/code&gt;&amp;#x2F;&lt;code&gt;execve&lt;/code&gt;、&lt;code&gt;mmap&lt;/code&gt;、&lt;code&gt;ioctl&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;strlen&lt;/code&gt;、&lt;code&gt;strcmp&lt;/code&gt;、&lt;code&gt;memcpy&lt;/code&gt; 完全在用户空间完成，不进内核；C 标准库函数和 Linux 系统调用不是一回事。&lt;/li&gt;
+&lt;li&gt;头文件只提供函数声明、结构体、宏、常量和类型，真正功能由 libc 和 Kernel 共同完成。&lt;/li&gt;
+&lt;li&gt;Linux 的接口不只是 syscall：&lt;code&gt;/dev&lt;/code&gt;、&lt;code&gt;/proc&lt;/code&gt;、&lt;code&gt;/sys&lt;/code&gt; 里的文件同样是访问内核的接口。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/&t=libc、系统调用与内核接口"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

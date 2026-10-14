@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="内核不只是驱动集合：从硬件抽象、进程调度、内存管理到网络协议栈和文件系统，说明内核替应用挡住了哪些细节。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 内核的职责">
+<meta property="og:url" content="http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="内核不只是驱动集合：从硬件抽象、进程调度、内存管理到网络协议栈和文件系统，说明内核替应用挡住了哪些细节。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-12T09:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:43.792Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="Linux内核">
+<meta property="article:tag" content="硬件抽象">
+<meta property="article:tag" content="文件系统">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>Linux 内核的职责</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&text=Linux 内核的职责"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&is_video=false&description=Linux 内核的职责"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Linux 内核的职责&body=Check out this article: http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&name=Linux 内核的职责&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;内核的核心作用是硬件抽象：应用通过 &lt;code&gt;/dev/ttyS0&lt;/code&gt; 加 &lt;code&gt;write()&lt;/code&gt; 使用串口，不需要知道基地址、寄存器偏移和 FIFO 深度。&lt;/li&gt;
+&lt;li&gt;内核不只管硬件，还管软件资源：谁什么时候运行、能用哪些虚拟地址、占用多少 RAM、谁在等 I&amp;#x2F;O。&lt;/li&gt;
+&lt;li&gt;写 HTTP 下载器不用自己实现 TCP&amp;#x2F;IP，&lt;code&gt;socket&lt;/code&gt; 到 &lt;code&gt;connect&lt;/code&gt; 背后是内核的协议栈和网卡驱动。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;open&lt;/code&gt;&amp;#x2F;&lt;code&gt;read&lt;/code&gt;&amp;#x2F;&lt;code&gt;write&lt;/code&gt; 是统一接口，数据究竟来自 ext4、UBIFS、SquashFS 还是 tmpfs 由内核决定。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&t=Linux 内核的职责"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Kernel-%E6%98%AF%E7%B3%BB%E7%BB%9F%E6%A0%B8%E5%BF%83"><span class="toc-number">2.</span> <span class="toc-text">1. Kernel 是系统核心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Kernel-%E6%9C%80%E9%87%8D%E8%A6%81%E7%9A%84%E4%BD%9C%E7%94%A8%EF%BC%9A%E7%A1%AC%E4%BB%B6%E6%8A%BD%E8%B1%A1"><span class="toc-number">3.</span> <span class="toc-text">2. Kernel 最重要的作用：硬件抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E4%B9%9F%E7%AE%A1%E7%90%86%E8%BD%AF%E4%BB%B6%E8%B5%84%E6%BA%90"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 也管理软件资源</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%BD%91%E7%BB%9C%E4%B9%9F%E6%98%AF-Kernel-%E7%9A%84%E9%87%8D%E8%A6%81%E8%83%BD%E5%8A%9B"><span class="toc-number">5.</span> <span class="toc-text">4. 网络也是 Kernel 的重要能力</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B9%9F%E6%98%AF-Kernel-%E7%AE%A1%E7%90%86"><span class="toc-number">6.</span> <span class="toc-text">5. 文件系统也是 Kernel 管理</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        Linux 内核的职责
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-10-12T09:30:00.000Z" class="dt-published" itemprop="datePublished">2026-10-12</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Linux%E5%86%85%E6%A0%B8/" rel="tag">Linux内核</a>, <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>, <a class="p-category" href="/cactus-theme/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" rel="tag">文件系统</a>, <a class="p-category" href="/cactus-theme/tags/%E7%A1%AC%E4%BB%B6%E6%8A%BD%E8%B1%A1/" rel="tag">硬件抽象</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>内核的核心作用是硬件抽象：应用通过 <code>/dev/ttyS0</code> 加 <code>write()</code> 使用串口，不需要知道基地址、寄存器偏移和 FIFO 深度。</li>
+<li>内核不只管硬件，还管软件资源：谁什么时候运行、能用哪些虚拟地址、占用多少 RAM、谁在等 I&#x2F;O。</li>
+<li>写 HTTP 下载器不用自己实现 TCP&#x2F;IP，<code>socket</code> 到 <code>connect</code> 背后是内核的协议栈和网卡驱动。</li>
+<li><code>open</code>&#x2F;<code>read</code>&#x2F;<code>write</code> 是统一接口，数据究竟来自 ext4、UBIFS、SquashFS 还是 tmpfs 由内核决定。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-Kernel-是系统核心"><a href="#1-Kernel-是系统核心" class="headerlink" title="1. Kernel 是系统核心"></a>1. Kernel 是系统核心</h2><p>Linux Kernel 负责管理硬件和系统资源。</p>
+<p>主要模块包括：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">CPU / 进程调度</span><br><span class="line">内存管理</span><br><span class="line">MMU</span><br><span class="line">中断</span><br><span class="line">定时器</span><br><span class="line">设备驱动</span><br><span class="line">网络协议栈</span><br><span class="line">文件系统</span><br><span class="line">系统调用</span><br><span class="line">进程间通信</span><br><span class="line">安全与权限</span><br></pre></td></tr></table></figure>
+
+<p>对于 MT7621，Kernel 可能初始化：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">CPU</span><br><span class="line">RAM</span><br><span class="line">UART</span><br><span class="line">GPIO</span><br><span class="line">SPI</span><br><span class="line">NAND / NOR</span><br><span class="line">Ethernet</span><br><span class="line">PHY</span><br><span class="line">USB</span><br><span class="line">PCIe</span><br><span class="line">Timer</span><br><span class="line">Interrupt Controller</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-Kernel-最重要的作用：硬件抽象"><a href="#2-Kernel-最重要的作用：硬件抽象" class="headerlink" title="2. Kernel 最重要的作用：硬件抽象"></a>2. Kernel 最重要的作用：硬件抽象</h2><p>应用程序通常不直接操作寄存器。</p>
+<p>例如串口应用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd = open(<span class="string">&quot;/dev/ttyS0&quot;</span>, O_RDWR);</span><br><span class="line">write(fd, buf, len);</span><br></pre></td></tr></table></figure>
+
+<p>调用链：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">应用程序</span><br><span class="line"> ↓</span><br><span class="line">open / write</span><br><span class="line"> ↓</span><br><span class="line">系统调用</span><br><span class="line"> ↓</span><br><span class="line">Linux 串口子系统</span><br><span class="line"> ↓</span><br><span class="line">MT7621 UART Driver</span><br><span class="line"> ↓</span><br><span class="line">UART Register</span><br></pre></td></tr></table></figure>
+
+<p>因此上层程序不需要知道：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">UART 基地址</span><br><span class="line">寄存器偏移</span><br><span class="line">FIFO 深度</span><br><span class="line">中断寄存器</span><br><span class="line">波特率寄存器算法</span><br></pre></td></tr></table></figure>
+
+<p>这些由驱动处理。</p>
+<h2 id="3-Kernel-也管理软件资源"><a href="#3-Kernel-也管理软件资源" class="headerlink" title="3. Kernel 也管理软件资源"></a>3. Kernel 也管理软件资源</h2><p>Kernel 不只是「驱动集合」。</p>
+<p>例如两个程序同时运行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">程序 A</span><br><span class="line">程序 B</span><br></pre></td></tr></table></figure>
+
+<p>Kernel 负责决定：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">哪个进程什么时候运行</span><br><span class="line">各自能访问哪些虚拟地址</span><br><span class="line">谁占用多少 RAM</span><br><span class="line">谁等待 I/O</span><br><span class="line">谁被唤醒</span><br></pre></td></tr></table></figure>
+
+<p>这就是进程调度和内存管理。</p>
+<h2 id="4-网络也是-Kernel-的重要能力"><a href="#4-网络也是-Kernel-的重要能力" class="headerlink" title="4. 网络也是 Kernel 的重要能力"></a>4. 网络也是 Kernel 的重要能力</h2><p>应用调用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">socket();</span><br><span class="line">connect();</span><br><span class="line">send();</span><br><span class="line">recv();</span><br></pre></td></tr></table></figure>
+
+<p>背后由 Kernel 完成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">TCP</span><br><span class="line">IP</span><br><span class="line">ARP</span><br><span class="line">路由</span><br><span class="line">重传</span><br><span class="line">分片</span><br><span class="line">Ethernet</span><br><span class="line">网卡驱动</span><br></pre></td></tr></table></figure>
+
+<p>所以应用写一个 HTTP 下载器，并不需要自己实现 TCP&#x2F;IP。</p>
+<h2 id="5-文件系统也是-Kernel-管理"><a href="#5-文件系统也是-Kernel-管理" class="headerlink" title="5. 文件系统也是 Kernel 管理"></a>5. 文件系统也是 Kernel 管理</h2><p>应用调用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">open();</span><br><span class="line">read();</span><br><span class="line">write();</span><br><span class="line">close();</span><br></pre></td></tr></table></figure>
+
+<p>Kernel 再决定数据实际来自：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ext4</span><br><span class="line">UBIFS</span><br><span class="line">SquashFS</span><br><span class="line">tmpfs</span><br><span class="line">procfs</span><br><span class="line">sysfs</span><br><span class="line">devtmpfs</span><br></pre></td></tr></table></figure>
+
+<p>上层 API 基本不变。</p>
+<p>这就是 Linux 的抽象能力：</p>
+<blockquote>
+<p>上层使用统一接口，底层由 Kernel 和驱动适配不同硬件。</p>
+</blockquote>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Kernel-%E6%98%AF%E7%B3%BB%E7%BB%9F%E6%A0%B8%E5%BF%83"><span class="toc-number">2.</span> <span class="toc-text">1. Kernel 是系统核心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Kernel-%E6%9C%80%E9%87%8D%E8%A6%81%E7%9A%84%E4%BD%9C%E7%94%A8%EF%BC%9A%E7%A1%AC%E4%BB%B6%E6%8A%BD%E8%B1%A1"><span class="toc-number">3.</span> <span class="toc-text">2. Kernel 最重要的作用：硬件抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E4%B9%9F%E7%AE%A1%E7%90%86%E8%BD%AF%E4%BB%B6%E8%B5%84%E6%BA%90"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 也管理软件资源</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%BD%91%E7%BB%9C%E4%B9%9F%E6%98%AF-Kernel-%E7%9A%84%E9%87%8D%E8%A6%81%E8%83%BD%E5%8A%9B"><span class="toc-number">5.</span> <span class="toc-text">4. 网络也是 Kernel 的重要能力</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B9%9F%E6%98%AF-Kernel-%E7%AE%A1%E7%90%86"><span class="toc-number">6.</span> <span class="toc-text">5. 文件系统也是 Kernel 管理</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&text=Linux 内核的职责"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&is_video=false&description=Linux 内核的职责"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Linux 内核的职责&body=Check out this article: http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&title=Linux 内核的职责"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&name=Linux 内核的职责&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;内核的核心作用是硬件抽象：应用通过 &lt;code&gt;/dev/ttyS0&lt;/code&gt; 加 &lt;code&gt;write()&lt;/code&gt; 使用串口，不需要知道基地址、寄存器偏移和 FIFO 深度。&lt;/li&gt;
+&lt;li&gt;内核不只管硬件，还管软件资源：谁什么时候运行、能用哪些虚拟地址、占用多少 RAM、谁在等 I&amp;#x2F;O。&lt;/li&gt;
+&lt;li&gt;写 HTTP 下载器不用自己实现 TCP&amp;#x2F;IP，&lt;code&gt;socket&lt;/code&gt; 到 &lt;code&gt;connect&lt;/code&gt; 背后是内核的协议栈和网卡驱动。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;open&lt;/code&gt;&amp;#x2F;&lt;code&gt;read&lt;/code&gt;&amp;#x2F;&lt;code&gt;write&lt;/code&gt; 是统一接口，数据究竟来自 ext4、UBIFS、SquashFS 还是 tmpfs 由内核决定。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/&t=Linux 内核的职责"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

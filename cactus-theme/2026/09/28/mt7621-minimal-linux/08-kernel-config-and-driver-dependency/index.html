@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="说明能编译不等于运行时可用：从内核配置、设备节点、文件系统支持到设备树匹配，梳理一条按层排查应用功能失败的方法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="内核配置与驱动依赖">
+<meta property="og:url" content="http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="说明能编译不等于运行时可用：从内核配置、设备节点、文件系统支持到设备树匹配，梳理一条按层排查应用功能失败的方法。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-28T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:43.891Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="内核配置">
+<meta property="article:tag" content="设备驱动">
+<meta property="article:tag" content="设备树">
+<meta property="article:tag" content="排查方法">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>内核配置与驱动依赖</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/09/26/mt7621-minimal-linux/09-minimal-wget-with-socket/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&text=内核配置与驱动依赖"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&is_video=false&description=内核配置与驱动依赖"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=内核配置与驱动依赖&body=Check out this article: http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&name=内核配置与驱动依赖&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;头文件和 libc 里有声明只说明 API 存在，不代表 Kernel 支持该功能；能编译不等于运行时可用。&lt;/li&gt;
+&lt;li&gt;网络功能要 Kernel 打开 &lt;code&gt;CONFIG_NET&lt;/code&gt;、&lt;code&gt;CONFIG_INET&lt;/code&gt;，还要有 MT7621 Ethernet Driver、MDIO、PHY Driver，链上任何一层缺失都不通。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/dev/ttyS0&lt;/code&gt; 需要 serial core、UART driver、设备树匹配、设备节点齐备才会出现。&lt;/li&gt;
+&lt;li&gt;rootfs 用 ext4、UBIFS 还是别的格式，Kernel 必须对应支持，否则无法挂载。&lt;/li&gt;
+&lt;li&gt;常见启动问题未必是驱动代码有错，更多是 DTS 地址、中断、时钟、compatible 不匹配或 &lt;code&gt;status = &amp;quot;disabled&amp;quot;&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;应用功能失败时按「应用 API、libc、Kernel 功能、驱动、设备树、硬件」逐层排查，比直接怀疑应用代码高效。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&t=内核配置与驱动依赖"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E8%83%BD%E7%BC%96%E8%AF%91%E4%B8%8D%E7%AD%89%E4%BA%8E%E8%BF%90%E8%A1%8C%E6%97%B6%E5%8F%AF%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">1. 能编译不等于运行时可用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Kernel-%E9%85%8D%E7%BD%AE%E5%86%B3%E5%AE%9A%E5%8A%9F%E8%83%BD"><span class="toc-number">3.</span> <span class="toc-text">2. Kernel 配置决定功能</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-dev-ttyS0-%E4%B9%9F%E4%B8%8D%E6%98%AF%E5%87%AD%E7%A9%BA%E5%87%BA%E7%8E%B0"><span class="toc-number">4.</span> <span class="toc-text">3. &#x2F;dev&#x2F;ttyS0 也不是凭空出现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B9%9F%E9%9C%80%E8%A6%81-Kernel-%E6%94%AF%E6%8C%81"><span class="toc-number">5.</span> <span class="toc-text">4. 文件系统也需要 Kernel 支持</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E6%A0%91%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">6.</span> <span class="toc-text">5. 驱动和设备树的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E5%88%86%E6%9E%90%E5%8E%9F%E5%88%99"><span class="toc-number">7.</span> <span class="toc-text">6. 分析原则</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        内核配置与驱动依赖
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-09-28T10:00:00.000Z" class="dt-published" itemprop="datePublished">2026-09-28</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/%E5%86%85%E6%A0%B8%E9%85%8D%E7%BD%AE/" rel="tag">内核配置</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>, <a class="p-category" href="/cactus-theme/tags/%E6%8E%92%E6%9F%A5%E6%96%B9%E6%B3%95/" rel="tag">排查方法</a>, <a class="p-category" href="/cactus-theme/tags/%E8%AE%BE%E5%A4%87%E6%A0%91/" rel="tag">设备树</a>, <a class="p-category" href="/cactus-theme/tags/%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8/" rel="tag">设备驱动</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>头文件和 libc 里有声明只说明 API 存在，不代表 Kernel 支持该功能；能编译不等于运行时可用。</li>
+<li>网络功能要 Kernel 打开 <code>CONFIG_NET</code>、<code>CONFIG_INET</code>，还要有 MT7621 Ethernet Driver、MDIO、PHY Driver，链上任何一层缺失都不通。</li>
+<li><code>/dev/ttyS0</code> 需要 serial core、UART driver、设备树匹配、设备节点齐备才会出现。</li>
+<li>rootfs 用 ext4、UBIFS 还是别的格式，Kernel 必须对应支持，否则无法挂载。</li>
+<li>常见启动问题未必是驱动代码有错，更多是 DTS 地址、中断、时钟、compatible 不匹配或 <code>status = &quot;disabled&quot;</code>。</li>
+<li>应用功能失败时按「应用 API、libc、Kernel 功能、驱动、设备树、硬件」逐层排查，比直接怀疑应用代码高效。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-能编译不等于运行时可用"><a href="#1-能编译不等于运行时可用" class="headerlink" title="1. 能编译不等于运行时可用"></a>1. 能编译不等于运行时可用</h2><p>例如应用代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>只要工具链的头文件和 libc 有对应声明，就可能编译成功。</p>
+<p>但如果 Kernel 没有网络功能，运行时仍然失败。</p>
+<p>所以：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">用户空间 API 存在</span><br><span class="line">≠</span><br><span class="line">Kernel 一定支持该功能</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-Kernel-配置决定功能"><a href="#2-Kernel-配置决定功能" class="headerlink" title="2. Kernel 配置决定功能"></a>2. Kernel 配置决定功能</h2><p>例如网络功能通常涉及：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CONFIG_NET</span><br><span class="line">CONFIG_INET</span><br></pre></td></tr></table></figure>
+
+<p>如果需要网卡，还要有：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">MT7621 Ethernet Driver</span><br><span class="line">MDIO</span><br><span class="line">PHY Driver</span><br></pre></td></tr></table></figure>
+
+<p>完整链：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">App</span><br><span class="line"> ↓</span><br><span class="line">socket</span><br><span class="line"> ↓</span><br><span class="line">TCP</span><br><span class="line"> ↓</span><br><span class="line">IPv4</span><br><span class="line"> ↓</span><br><span class="line">Ethernet</span><br><span class="line"> ↓</span><br><span class="line">MT7621 Ethernet Driver</span><br><span class="line"> ↓</span><br><span class="line">MAC</span><br><span class="line"> ↓</span><br><span class="line">PHY</span><br></pre></td></tr></table></figure>
+
+<p>其中任何一层缺失，都可能导致网络不可用。</p>
+<h2 id="3-dev-ttyS0-也不是凭空出现"><a href="#3-dev-ttyS0-也不是凭空出现" class="headerlink" title="3. /dev/ttyS0 也不是凭空出现"></a>3. <code>/dev/ttyS0</code> 也不是凭空出现</h2><p>应用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">open(<span class="string">&quot;/dev/ttyS0&quot;</span>, O_RDWR);</span><br></pre></td></tr></table></figure>
+
+<p>要正常使用，还需要：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Kernel serial core</span><br><span class="line"> ↓</span><br><span class="line">MT7621 UART driver</span><br><span class="line"> ↓</span><br><span class="line">设备树匹配</span><br><span class="line"> ↓</span><br><span class="line">设备节点</span><br></pre></td></tr></table></figure>
+
+<p>所以 <code>open()</code> 能编译只是说明 API 存在。</p>
+<p>并不说明具体设备一定存在。</p>
+<h2 id="4-文件系统也需要-Kernel-支持"><a href="#4-文件系统也需要-Kernel-支持" class="headerlink" title="4. 文件系统也需要 Kernel 支持"></a>4. 文件系统也需要 Kernel 支持</h2><p>如果 rootfs 是 ext4：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">必须支持 ext4</span><br></pre></td></tr></table></figure>
+
+<p>如果使用 UBIFS：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">必须支持 UBI/UBIFS</span><br></pre></td></tr></table></figure>
+
+<p>如果 rootfs 格式内核不认识，就无法挂载。</p>
+<h2 id="5-驱动和设备树的关系"><a href="#5-驱动和设备树的关系" class="headerlink" title="5. 驱动和设备树的关系"></a>5. 驱动和设备树的关系</h2><p>对于很多 SoC 外设：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">设备树</span><br><span class="line"> ↓</span><br><span class="line">描述硬件地址、中断、时钟、GPIO 等</span><br><span class="line"> ↓</span><br><span class="line">Kernel Driver</span><br><span class="line"> ↓</span><br><span class="line">匹配设备</span><br><span class="line"> ↓</span><br><span class="line">完成初始化</span><br></pre></td></tr></table></figure>
+
+<p>所以常见启动问题可能并不是驱动代码有错，而是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">DTS 地址错误</span><br><span class="line">interrupt 配置错误</span><br><span class="line">clock 缺失</span><br><span class="line">compatible 不匹配</span><br><span class="line">status = &quot;disabled&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="6-分析原则"><a href="#6-分析原则" class="headerlink" title="6. 分析原则"></a>6. 分析原则</h2><p>当应用功能失败时，按层排查：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">应用 API 是否正确</span><br><span class="line"> ↓</span><br><span class="line">libc 是否存在</span><br><span class="line"> ↓</span><br><span class="line">Kernel 功能是否启用</span><br><span class="line"> ↓</span><br><span class="line">驱动是否加载</span><br><span class="line"> ↓</span><br><span class="line">设备树是否匹配</span><br><span class="line"> ↓</span><br><span class="line">硬件是否正常</span><br></pre></td></tr></table></figure>
+
+<p>这样比直接怀疑应用代码高效得多。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E8%83%BD%E7%BC%96%E8%AF%91%E4%B8%8D%E7%AD%89%E4%BA%8E%E8%BF%90%E8%A1%8C%E6%97%B6%E5%8F%AF%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">1. 能编译不等于运行时可用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Kernel-%E9%85%8D%E7%BD%AE%E5%86%B3%E5%AE%9A%E5%8A%9F%E8%83%BD"><span class="toc-number">3.</span> <span class="toc-text">2. Kernel 配置决定功能</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-dev-ttyS0-%E4%B9%9F%E4%B8%8D%E6%98%AF%E5%87%AD%E7%A9%BA%E5%87%BA%E7%8E%B0"><span class="toc-number">4.</span> <span class="toc-text">3. &#x2F;dev&#x2F;ttyS0 也不是凭空出现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B9%9F%E9%9C%80%E8%A6%81-Kernel-%E6%94%AF%E6%8C%81"><span class="toc-number">5.</span> <span class="toc-text">4. 文件系统也需要 Kernel 支持</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E6%A0%91%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">6.</span> <span class="toc-text">5. 驱动和设备树的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E5%88%86%E6%9E%90%E5%8E%9F%E5%88%99"><span class="toc-number">7.</span> <span class="toc-text">6. 分析原则</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&text=内核配置与驱动依赖"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&is_video=false&description=内核配置与驱动依赖"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=内核配置与驱动依赖&body=Check out this article: http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&title=内核配置与驱动依赖"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&name=内核配置与驱动依赖&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;头文件和 libc 里有声明只说明 API 存在，不代表 Kernel 支持该功能；能编译不等于运行时可用。&lt;/li&gt;
+&lt;li&gt;网络功能要 Kernel 打开 &lt;code&gt;CONFIG_NET&lt;/code&gt;、&lt;code&gt;CONFIG_INET&lt;/code&gt;，还要有 MT7621 Ethernet Driver、MDIO、PHY Driver，链上任何一层缺失都不通。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/dev/ttyS0&lt;/code&gt; 需要 serial core、UART driver、设备树匹配、设备节点齐备才会出现。&lt;/li&gt;
+&lt;li&gt;rootfs 用 ext4、UBIFS 还是别的格式，Kernel 必须对应支持，否则无法挂载。&lt;/li&gt;
+&lt;li&gt;常见启动问题未必是驱动代码有错，更多是 DTS 地址、中断、时钟、compatible 不匹配或 &lt;code&gt;status = &amp;quot;disabled&amp;quot;&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;应用功能失败时按「应用 API、libc、Kernel 功能、驱动、设备树、硬件」逐层排查，比直接怀疑应用代码高效。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/28/mt7621-minimal-linux/08-kernel-config-and-driver-dependency/&t=内核配置与驱动依赖"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

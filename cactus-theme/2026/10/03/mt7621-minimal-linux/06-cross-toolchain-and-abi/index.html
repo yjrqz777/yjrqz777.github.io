@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="讲清交叉编译的必要性、mipsel-linux-gnu 前缀各段的含义、工具链包含哪些组件，以及 Kernel 为什么不链接 libc、ABI 不兼容会出现哪些报错。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="交叉工具链与 ABI">
+<meta property="og:url" content="http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="讲清交叉编译的必要性、mipsel-linux-gnu 前缀各段的含义、工具链包含哪些组件，以及 Kernel 为什么不链接 libc、ABI 不兼容会出现哪些报错。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-03T05:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:43.866Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="交叉编译">
+<meta property="article:tag" content="ABI">
+<meta property="article:tag" content="工具链">
+<meta property="article:tag" content="MIPS">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>交叉工具链与 ABI</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/10/05/mt7621-minimal-linux/05-busybox-and-minimal-userspace/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/10/01/mt7621-minimal-linux/07-libc-syscall-and-kernel-interface/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&text=交叉工具链与 ABI"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&is_video=false&description=交叉工具链与 ABI"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=交叉工具链与 ABI&body=Check out this article: http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&name=交叉工具链与 ABI&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;开发机是 x86_64，MT7621 是 MIPS 小端，普通 PC GCC 生成的机器码目标机执行不了，所以需要 &lt;code&gt;mipsel-linux-gnu-gcc&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;交叉工具链不只是 &lt;code&gt;gcc&lt;/code&gt;，还包括 &lt;code&gt;ld&lt;/code&gt;、&lt;code&gt;as&lt;/code&gt;、&lt;code&gt;objcopy&lt;/code&gt;、&lt;code&gt;strip&lt;/code&gt;、头文件、libc、动态链接器和启动文件。&lt;/li&gt;
+&lt;li&gt;Kernel 和用户程序不强制用同一套工具链，但必须满足 CPU 架构、字节序、ABI 三者兼容；实际工程里统一工具链最省事。&lt;/li&gt;
+&lt;li&gt;Kernel 本身就是底层，不链接 glibc&amp;#x2F;musl，用交叉编译器主要是为了生成正确的目标机器码。&lt;/li&gt;
+&lt;li&gt;即使都叫 MIPS，位宽、端序、ABI、指令集要求不同也会出现 &lt;code&gt;Exec format error&lt;/code&gt;、&lt;code&gt;Illegal instruction&lt;/code&gt;、动态链接失败。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&t=交叉工具链与 ABI"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91"><span class="toc-number">2.</span> <span class="toc-text">1. 为什么需要交叉编译</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%B7%A5%E5%85%B7%E9%93%BE%E9%80%9A%E5%B8%B8%E5%8C%85%E5%90%AB%E4%BB%80%E4%B9%88"><span class="toc-number">3.</span> <span class="toc-text">2. 工具链通常包含什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E5%92%8C%E5%BA%94%E7%94%A8%E6%98%AF%E5%90%A6%E5%BF%85%E9%A1%BB%E7%94%A8%E5%90%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E5%85%B7%E9%93%BE"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 和应用是否必须用同一个工具链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Kernel-%E4%B8%8D%E4%BE%9D%E8%B5%96-libc"><span class="toc-number">5.</span> <span class="toc-text">4. Kernel 不依赖 libc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-ABI-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%87%8D%E8%A6%81"><span class="toc-number">6.</span> <span class="toc-text">5. ABI 为什么重要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%AE%9E%E8%B7%B5%E5%8E%9F%E5%88%99"><span class="toc-number">7.</span> <span class="toc-text">6. 最简单的实践原则</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        交叉工具链与 ABI
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-10-03T05:00:00.000Z" class="dt-published" itemprop="datePublished">2026-10-03</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/ABI/" rel="tag">ABI</a>, <a class="p-category" href="/cactus-theme/tags/MIPS/" rel="tag">MIPS</a>, <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" rel="tag">交叉编译</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B7%A5%E5%85%B7%E9%93%BE/" rel="tag">工具链</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>开发机是 x86_64，MT7621 是 MIPS 小端，普通 PC GCC 生成的机器码目标机执行不了，所以需要 <code>mipsel-linux-gnu-gcc</code>。</li>
+<li>交叉工具链不只是 <code>gcc</code>，还包括 <code>ld</code>、<code>as</code>、<code>objcopy</code>、<code>strip</code>、头文件、libc、动态链接器和启动文件。</li>
+<li>Kernel 和用户程序不强制用同一套工具链，但必须满足 CPU 架构、字节序、ABI 三者兼容；实际工程里统一工具链最省事。</li>
+<li>Kernel 本身就是底层，不链接 glibc&#x2F;musl，用交叉编译器主要是为了生成正确的目标机器码。</li>
+<li>即使都叫 MIPS，位宽、端序、ABI、指令集要求不同也会出现 <code>Exec format error</code>、<code>Illegal instruction</code>、动态链接失败。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-为什么需要交叉编译"><a href="#1-为什么需要交叉编译" class="headerlink" title="1. 为什么需要交叉编译"></a>1. 为什么需要交叉编译</h2><p>开发机通常是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">x86_64 PC</span><br></pre></td></tr></table></figure>
+
+<p>目标机 MT7621 是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MIPS</span><br><span class="line">Little Endian</span><br></pre></td></tr></table></figure>
+
+<p>普通 PC GCC 默认生成 x86_64 机器码，MT7621 无法执行。</p>
+<p>所以需要交叉编译器：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mipsel-linux-gnu-gcc</span><br></pre></td></tr></table></figure>
+
+<p>含义大致是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mipsel</span><br><span class="line"> ↓</span><br><span class="line">MIPS Little Endian</span><br><span class="line"></span><br><span class="line">linux</span><br><span class="line"> ↓</span><br><span class="line">目标操作系统 ABI 是 Linux</span><br><span class="line"></span><br><span class="line">gnu</span><br><span class="line"> ↓</span><br><span class="line">GNU 工具链体系</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-工具链通常包含什么"><a href="#2-工具链通常包含什么" class="headerlink" title="2. 工具链通常包含什么"></a>2. 工具链通常包含什么</h2><p>用户空间交叉工具链通常包含：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">gcc</span><br><span class="line">ld</span><br><span class="line">as</span><br><span class="line">objcopy</span><br><span class="line">strip</span><br><span class="line">头文件</span><br><span class="line">libc</span><br><span class="line">动态链接器</span><br><span class="line">启动文件</span><br></pre></td></tr></table></figure>
+
+<p>因此它不只是一个 <code>gcc</code>。</p>
+<h2 id="3-Kernel-和应用是否必须用同一个工具链"><a href="#3-Kernel-和应用是否必须用同一个工具链" class="headerlink" title="3. Kernel 和应用是否必须用同一个工具链"></a>3. Kernel 和应用是否必须用同一个工具链</h2><p>严格来说不必须。</p>
+<p>但必须满足：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU 架构兼容</span><br><span class="line">字节序兼容</span><br><span class="line">ABI 兼容</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel     → MIPS32 little endian</span><br><span class="line">BusyBox    → MIPS32 little endian</span><br><span class="line">App        → MIPS32 little endian</span><br></pre></td></tr></table></figure>
+
+<p>实际工程中通常统一工具链最省事。</p>
+<h2 id="4-Kernel-不依赖-libc"><a href="#4-Kernel-不依赖-libc" class="headerlink" title="4. Kernel 不依赖 libc"></a>4. Kernel 不依赖 libc</h2><p>Kernel 和用户程序的编译模型不同。</p>
+<p>用户程序：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">App</span><br><span class="line"> ↓</span><br><span class="line">libc</span><br><span class="line"> ↓</span><br><span class="line">syscall</span><br><span class="line"> ↓</span><br><span class="line">Kernel</span><br></pre></td></tr></table></figure>
+
+<p>Kernel：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br></pre></td></tr></table></figure>
+
+<p>本身就是底层，不链接 glibc&#x2F;musl。</p>
+<p>所以 Kernel 使用交叉编译器主要是为了生成正确的目标机器码。</p>
+<h2 id="5-ABI-为什么重要"><a href="#5-ABI-为什么重要" class="headerlink" title="5. ABI 为什么重要"></a>5. ABI 为什么重要</h2><p>即使都是 MIPS，也可能存在：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">32/64 位区别</span><br><span class="line">大端/小端区别</span><br><span class="line">不同 ABI</span><br><span class="line">不同 CPU 指令集要求</span><br></pre></td></tr></table></figure>
+
+<p>如果 ABI 不兼容，可能出现：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Exec format error</span><br><span class="line">Illegal instruction</span><br><span class="line">动态链接失败</span><br></pre></td></tr></table></figure>
+
+<p>因此「CPU 名字一样」不等于程序一定兼容。</p>
+<h2 id="6-最简单的实践原则"><a href="#6-最简单的实践原则" class="headerlink" title="6. 最简单的实践原则"></a>6. 最简单的实践原则</h2><p>第一次搭系统时：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line">BusyBox</span><br><span class="line">自己的应用</span><br></pre></td></tr></table></figure>
+
+<p>尽量都使用同一套 MT7621 交叉工具链。</p>
+<p>这样最容易控制变量。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91"><span class="toc-number">2.</span> <span class="toc-text">1. 为什么需要交叉编译</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%B7%A5%E5%85%B7%E9%93%BE%E9%80%9A%E5%B8%B8%E5%8C%85%E5%90%AB%E4%BB%80%E4%B9%88"><span class="toc-number">3.</span> <span class="toc-text">2. 工具链通常包含什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E5%92%8C%E5%BA%94%E7%94%A8%E6%98%AF%E5%90%A6%E5%BF%85%E9%A1%BB%E7%94%A8%E5%90%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E5%85%B7%E9%93%BE"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 和应用是否必须用同一个工具链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Kernel-%E4%B8%8D%E4%BE%9D%E8%B5%96-libc"><span class="toc-number">5.</span> <span class="toc-text">4. Kernel 不依赖 libc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-ABI-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%87%8D%E8%A6%81"><span class="toc-number">6.</span> <span class="toc-text">5. ABI 为什么重要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84%E5%AE%9E%E8%B7%B5%E5%8E%9F%E5%88%99"><span class="toc-number">7.</span> <span class="toc-text">6. 最简单的实践原则</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&text=交叉工具链与 ABI"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&is_video=false&description=交叉工具链与 ABI"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=交叉工具链与 ABI&body=Check out this article: http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&title=交叉工具链与 ABI"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&name=交叉工具链与 ABI&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;开发机是 x86_64，MT7621 是 MIPS 小端，普通 PC GCC 生成的机器码目标机执行不了，所以需要 &lt;code&gt;mipsel-linux-gnu-gcc&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;交叉工具链不只是 &lt;code&gt;gcc&lt;/code&gt;，还包括 &lt;code&gt;ld&lt;/code&gt;、&lt;code&gt;as&lt;/code&gt;、&lt;code&gt;objcopy&lt;/code&gt;、&lt;code&gt;strip&lt;/code&gt;、头文件、libc、动态链接器和启动文件。&lt;/li&gt;
+&lt;li&gt;Kernel 和用户程序不强制用同一套工具链，但必须满足 CPU 架构、字节序、ABI 三者兼容；实际工程里统一工具链最省事。&lt;/li&gt;
+&lt;li&gt;Kernel 本身就是底层，不链接 glibc&amp;#x2F;musl，用交叉编译器主要是为了生成正确的目标机器码。&lt;/li&gt;
+&lt;li&gt;即使都叫 MIPS，位宽、端序、ABI、指令集要求不同也会出现 &lt;code&gt;Exec format error&lt;/code&gt;、&lt;code&gt;Illegal instruction&lt;/code&gt;、动态链接失败。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/03/mt7621-minimal-linux/06-cross-toolchain-and-abi/&t=交叉工具链与 ABI"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

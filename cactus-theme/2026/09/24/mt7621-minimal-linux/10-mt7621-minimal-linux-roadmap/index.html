@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="按六个阶段给出 MT7621 极简 Linux 的实践顺序：只启动 Kernel、加入 initramfs、检查基础接口、逐个验证硬件、跑自己的应用、过渡到正式 rootfs，最后说明 Buildroot 的定位。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MT7621 极简 Linux 实践路线">
+<meta property="og:url" content="http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="按六个阶段给出 MT7621 极简 Linux 的实践顺序：只启动 Kernel、加入 initramfs、检查基础接口、逐个验证硬件、跑自己的应用、过渡到正式 rootfs，最后说明 Buildroot 的定位。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-24T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:46.928Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="initramfs">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="rootfs">
+<meta property="article:tag" content="实践路线">
+<meta property="article:tag" content="Buildroot">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>MT7621 极简 Linux 实践路线</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/09/26/mt7621-minimal-linux/09-minimal-wget-with-socket/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/09/21/mt7621-minimal-linux/index/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&text=MT7621 极简 Linux 实践路线"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&is_video=false&description=MT7621 极简 Linux 实践路线"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=MT7621 极简 Linux 实践路线&body=Check out this article: http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&name=MT7621 极简 Linux 实践路线&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;第一阶段只求启动 Kernel、看到串口 log，重点解决镜像格式、加载地址、DTB、串口、RAM、启动参数。&lt;/li&gt;
+&lt;li&gt;第二阶段加 initramfs 和静态 BusyBox，看到 &lt;code&gt;/ #&lt;/code&gt; 就说明整条链路跑通。&lt;/li&gt;
+&lt;li&gt;第三阶段用 &lt;code&gt;/proc&lt;/code&gt;、&lt;code&gt;/sys&lt;/code&gt;、&lt;code&gt;/dev&lt;/code&gt; 检查基础接口，理解各自暴露的是内核状态、设备驱动模型和设备节点。&lt;/li&gt;
+&lt;li&gt;第四阶段按 UART、GPIO、SPI、Flash、Ethernet、USB、PCIe 逐个验证硬件，一次只验一个子系统。&lt;/li&gt;
+&lt;li&gt;第六阶段再过渡到 ext4、SquashFS、UBIFS 等正式 rootfs；Buildroot 可以自动生成整套组件，但建议先手工跑通一次最小系统。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&t=MT7621 极简 Linux 实践路线"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E7%AC%AC%E4%B8%80%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%8F%AA%E5%90%AF%E5%8A%A8-Kernel"><span class="toc-number">2.</span> <span class="toc-text">1. 第一阶段：只启动 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%AC%AC%E4%BA%8C%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%8A%A0%E5%85%A5-initramfs"><span class="toc-number">3.</span> <span class="toc-text">2. 第二阶段：加入 initramfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E7%AC%AC%E4%B8%89%E9%98%B6%E6%AE%B5%EF%BC%9A%E6%A3%80%E6%9F%A5-Linux-%E5%9F%BA%E7%A1%80%E6%8E%A5%E5%8F%A3"><span class="toc-number">4.</span> <span class="toc-text">3. 第三阶段：检查 Linux 基础接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%AC%AC%E5%9B%9B%E9%98%B6%E6%AE%B5%EF%BC%9A%E9%80%90%E6%AD%A5%E9%AA%8C%E8%AF%81%E7%A1%AC%E4%BB%B6"><span class="toc-number">5.</span> <span class="toc-text">4. 第四阶段：逐步验证硬件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E7%AC%AC%E4%BA%94%E9%98%B6%E6%AE%B5%EF%BC%9A%E8%B7%91%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%94%E7%94%A8"><span class="toc-number">6.</span> <span class="toc-text">5. 第五阶段：跑自己的应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E7%AC%AC%E5%85%AD%E9%98%B6%E6%AE%B5%EF%BC%9A%E4%BB%8E-initramfs-%E8%BF%87%E6%B8%A1%E5%88%B0%E6%AD%A3%E5%BC%8F-rootfs"><span class="toc-number">7.</span> <span class="toc-text">6. 第六阶段：从 initramfs 过渡到正式 rootfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Buildroot-%E7%9A%84%E4%BB%B7%E5%80%BC"><span class="toc-number">8.</span> <span class="toc-text">7. Buildroot 的价值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E6%9C%80%E7%BB%88%E7%9B%AE%E6%A0%87"><span class="toc-number">9.</span> <span class="toc-text">8. 最终目标</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        MT7621 极简 Linux 实践路线
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-09-24T04:00:00.000Z" class="dt-published" itemprop="datePublished">2026-09-24</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/Buildroot/" rel="tag">Buildroot</a>, <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/initramfs/" rel="tag">initramfs</a>, <a class="p-category" href="/cactus-theme/tags/rootfs/" rel="tag">rootfs</a>, <a class="p-category" href="/cactus-theme/tags/%E5%AE%9E%E8%B7%B5%E8%B7%AF%E7%BA%BF/" rel="tag">实践路线</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>第一阶段只求启动 Kernel、看到串口 log，重点解决镜像格式、加载地址、DTB、串口、RAM、启动参数。</li>
+<li>第二阶段加 initramfs 和静态 BusyBox，看到 <code>/ #</code> 就说明整条链路跑通。</li>
+<li>第三阶段用 <code>/proc</code>、<code>/sys</code>、<code>/dev</code> 检查基础接口，理解各自暴露的是内核状态、设备驱动模型和设备节点。</li>
+<li>第四阶段按 UART、GPIO、SPI、Flash、Ethernet、USB、PCIe 逐个验证硬件，一次只验一个子系统。</li>
+<li>第六阶段再过渡到 ext4、SquashFS、UBIFS 等正式 rootfs；Buildroot 可以自动生成整套组件，但建议先手工跑通一次最小系统。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-第一阶段：只启动-Kernel"><a href="#1-第一阶段：只启动-Kernel" class="headerlink" title="1. 第一阶段：只启动 Kernel"></a>1. 第一阶段：只启动 Kernel</h2><p>目标：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">U-Boot</span><br><span class="line"> ↓</span><br><span class="line">Linux Kernel</span><br><span class="line"> ↓</span><br><span class="line">看到串口 Kernel log</span><br></pre></td></tr></table></figure>
+
+<p>此阶段重点解决：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Kernel 镜像格式</span><br><span class="line">加载地址</span><br><span class="line">DTB</span><br><span class="line">串口</span><br><span class="line">RAM</span><br><span class="line">启动参数</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-第二阶段：加入-initramfs"><a href="#2-第二阶段：加入-initramfs" class="headerlink" title="2. 第二阶段：加入 initramfs"></a>2. 第二阶段：加入 initramfs</h2><p>准备：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">rootfs/</span><br><span class="line">├── init</span><br><span class="line">├── bin/</span><br><span class="line">│   └── busybox</span><br><span class="line">├── dev/</span><br><span class="line">├── proc/</span><br><span class="line">└── sys/</span><br></pre></td></tr></table></figure>
+
+<p>BusyBox 推荐静态编译。</p>
+<p><code>/init</code>：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/busybox sh</span></span><br><span class="line"></span><br><span class="line">/bin/busybox mount -t proc proc /proc</span><br><span class="line">/bin/busybox mount -t sysfs sysfs /sys</span><br><span class="line">/bin/busybox mount -t devtmpfs devtmpfs /dev</span><br><span class="line"></span><br><span class="line">/bin/busybox sh</span><br></pre></td></tr></table></figure>
+
+<p>目标：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/ #</span><br></pre></td></tr></table></figure>
+
+<p>能看到 shell 提示符，就说明：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">U-Boot</span><br><span class="line">Kernel</span><br><span class="line">initramfs</span><br><span class="line">/init</span><br><span class="line">BusyBox</span><br></pre></td></tr></table></figure>
+
+<p>整条链路已经跑通。</p>
+<h2 id="3-第三阶段：检查-Linux-基础接口"><a href="#3-第三阶段：检查-Linux-基础接口" class="headerlink" title="3. 第三阶段：检查 Linux 基础接口"></a>3. 第三阶段：检查 Linux 基础接口</h2><p>验证：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/cpuinfo</span><br><span class="line"><span class="built_in">cat</span> /proc/meminfo</span><br><span class="line">dmesg</span><br><span class="line"><span class="built_in">ls</span> /sys</span><br><span class="line"><span class="built_in">ls</span> /dev</span><br></pre></td></tr></table></figure>
+
+<p>理解：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/proc → Kernel 状态</span><br><span class="line">/sys  → 设备与驱动模型</span><br><span class="line">/dev  → 设备节点</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-第四阶段：逐步验证硬件"><a href="#4-第四阶段：逐步验证硬件" class="headerlink" title="4. 第四阶段：逐步验证硬件"></a>4. 第四阶段：逐步验证硬件</h2><p>建议顺序：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">UART</span><br><span class="line">GPIO</span><br><span class="line">SPI</span><br><span class="line">Flash</span><br><span class="line">Ethernet</span><br><span class="line">USB</span><br><span class="line">PCIe</span><br></pre></td></tr></table></figure>
+
+<p>一次只验证一个子系统。</p>
+<h2 id="5-第五阶段：跑自己的应用"><a href="#5-第五阶段：跑自己的应用" class="headerlink" title="5. 第五阶段：跑自己的应用"></a>5. 第五阶段：跑自己的应用</h2><p>先写简单程序：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">hello world</span><br><span class="line"> ↓</span><br><span class="line">文件读写</span><br><span class="line"> ↓</span><br><span class="line">串口访问</span><br><span class="line"> ↓</span><br><span class="line">socket</span><br><span class="line"> ↓</span><br><span class="line">HTTP 下载</span><br></pre></td></tr></table></figure>
+
+<p>使用交叉工具链编译，再放入 rootfs。</p>
+<h2 id="6-第六阶段：从-initramfs-过渡到正式-rootfs"><a href="#6-第六阶段：从-initramfs-过渡到正式-rootfs" class="headerlink" title="6. 第六阶段：从 initramfs 过渡到正式 rootfs"></a>6. 第六阶段：从 initramfs 过渡到正式 rootfs</h2><p>之后可以使用：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ext4</span><br><span class="line">SquashFS</span><br><span class="line">UBIFS</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">挂载 Flash / SD</span><br><span class="line"> ↓</span><br><span class="line">正式 rootfs</span><br><span class="line"> ↓</span><br><span class="line">/sbin/init</span><br></pre></td></tr></table></figure>
+
+<p>initramfs 也可以作为过渡环境：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">initramfs</span><br><span class="line"> ↓</span><br><span class="line">/init</span><br><span class="line"> ↓</span><br><span class="line">找到正式 rootfs</span><br><span class="line"> ↓</span><br><span class="line">switch_root</span><br></pre></td></tr></table></figure>
+
+<h2 id="7-Buildroot-的价值"><a href="#7-Buildroot-的价值" class="headerlink" title="7. Buildroot 的价值"></a>7. Buildroot 的价值</h2><p>不想手工维护所有组件时，可以使用 Buildroot 自动生成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Toolchain</span><br><span class="line">Kernel</span><br><span class="line">BusyBox</span><br><span class="line">RootFS</span><br><span class="line">Initramfs</span><br><span class="line">软件包</span><br></pre></td></tr></table></figure>
+
+<p>但建议先手工跑通一次最小系统。</p>
+<p>这样以后使用 Buildroot 时，能明确知道它替你自动完成了什么。</p>
+<h2 id="8-最终目标"><a href="#8-最终目标" class="headerlink" title="8. 最终目标"></a>8. 最终目标</h2><p>建立完整认识：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">U-Boot</span><br><span class="line"> ↓</span><br><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">RootFS</span><br><span class="line"> ↓</span><br><span class="line">PID 1</span><br><span class="line"> ↓</span><br><span class="line">BusyBox / App</span><br><span class="line"> ↓</span><br><span class="line">libc</span><br><span class="line"> ↓</span><br><span class="line">syscall</span><br><span class="line"> ↓</span><br><span class="line">Kernel</span><br><span class="line"> ↓</span><br><span class="line">Driver</span><br><span class="line"> ↓</span><br><span class="line">MT7621 Hardware</span><br></pre></td></tr></table></figure>
+
+<p>做到这一点后，再学习 OpenWrt、Debian、Buildroot，会容易很多。</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E7%AC%AC%E4%B8%80%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%8F%AA%E5%90%AF%E5%8A%A8-Kernel"><span class="toc-number">2.</span> <span class="toc-text">1. 第一阶段：只启动 Kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%AC%AC%E4%BA%8C%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%8A%A0%E5%85%A5-initramfs"><span class="toc-number">3.</span> <span class="toc-text">2. 第二阶段：加入 initramfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E7%AC%AC%E4%B8%89%E9%98%B6%E6%AE%B5%EF%BC%9A%E6%A3%80%E6%9F%A5-Linux-%E5%9F%BA%E7%A1%80%E6%8E%A5%E5%8F%A3"><span class="toc-number">4.</span> <span class="toc-text">3. 第三阶段：检查 Linux 基础接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%AC%AC%E5%9B%9B%E9%98%B6%E6%AE%B5%EF%BC%9A%E9%80%90%E6%AD%A5%E9%AA%8C%E8%AF%81%E7%A1%AC%E4%BB%B6"><span class="toc-number">5.</span> <span class="toc-text">4. 第四阶段：逐步验证硬件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E7%AC%AC%E4%BA%94%E9%98%B6%E6%AE%B5%EF%BC%9A%E8%B7%91%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%94%E7%94%A8"><span class="toc-number">6.</span> <span class="toc-text">5. 第五阶段：跑自己的应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E7%AC%AC%E5%85%AD%E9%98%B6%E6%AE%B5%EF%BC%9A%E4%BB%8E-initramfs-%E8%BF%87%E6%B8%A1%E5%88%B0%E6%AD%A3%E5%BC%8F-rootfs"><span class="toc-number">7.</span> <span class="toc-text">6. 第六阶段：从 initramfs 过渡到正式 rootfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Buildroot-%E7%9A%84%E4%BB%B7%E5%80%BC"><span class="toc-number">8.</span> <span class="toc-text">7. Buildroot 的价值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E6%9C%80%E7%BB%88%E7%9B%AE%E6%A0%87"><span class="toc-number">9.</span> <span class="toc-text">8. 最终目标</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&text=MT7621 极简 Linux 实践路线"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&is_video=false&description=MT7621 极简 Linux 实践路线"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=MT7621 极简 Linux 实践路线&body=Check out this article: http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&title=MT7621 极简 Linux 实践路线"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&name=MT7621 极简 Linux 实践路线&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;第一阶段只求启动 Kernel、看到串口 log，重点解决镜像格式、加载地址、DTB、串口、RAM、启动参数。&lt;/li&gt;
+&lt;li&gt;第二阶段加 initramfs 和静态 BusyBox，看到 &lt;code&gt;/ #&lt;/code&gt; 就说明整条链路跑通。&lt;/li&gt;
+&lt;li&gt;第三阶段用 &lt;code&gt;/proc&lt;/code&gt;、&lt;code&gt;/sys&lt;/code&gt;、&lt;code&gt;/dev&lt;/code&gt; 检查基础接口，理解各自暴露的是内核状态、设备驱动模型和设备节点。&lt;/li&gt;
+&lt;li&gt;第四阶段按 UART、GPIO、SPI、Flash、Ethernet、USB、PCIe 逐个验证硬件，一次只验一个子系统。&lt;/li&gt;
+&lt;li&gt;第六阶段再过渡到 ext4、SquashFS、UBIFS 等正式 rootfs；Buildroot 可以自动生成整套组件，但建议先手工跑通一次最小系统。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/09/24/mt7621-minimal-linux/10-mt7621-minimal-linux-roadmap/&t=MT7621 极简 Linux 实践路线"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>

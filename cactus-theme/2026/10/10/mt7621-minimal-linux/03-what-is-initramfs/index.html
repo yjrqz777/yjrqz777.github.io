@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="说明 initramfs 的本质是一套启动阶段用的目录和文件，讲清 cpio 打包加 gzip 压缩的过程、内核如何展开它，以及与 ext4 rootfs 的区别和两种放置方式。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="initramfs 是什么">
+<meta property="og:url" content="http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/index.html">
+<meta property="og:site_name" content="YJRQZ777">
+<meta property="og:description" content="说明 initramfs 的本质是一套启动阶段用的目录和文件，讲清 cpio 打包加 gzip 压缩的过程、内核如何展开它，以及与 ext4 rootfs 的区别和两种放置方式。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-10T06:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T11:43:43.809Z">
+<meta property="article:author" content="yjrqz777">
+<meta property="article:tag" content="MT7621">
+<meta property="article:tag" content="initramfs">
+<meta property="article:tag" content="嵌入式Linux">
+<meta property="article:tag" content="cpio">
+<meta property="article:tag" content="rootfs">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/cactus-theme/img/star.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/cactus-theme/img/star.ico" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/cactus-theme/img/star.ico">
+        
+      
+    
+    <!-- title -->
+    <title>initramfs 是什么</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/cactus-theme/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="目录"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="顶部" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="上一篇" href="/cactus-theme/2026/10/12/mt7621-minimal-linux/02-linux-kernel-responsibilities/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="下一篇" href="/cactus-theme/2026/10/08/mt7621-minimal-linux/04-init-and-pid1/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="返回顶部" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="分享文章" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">上一篇</span>
+      <span id="i-next" class="info" style="display:none;">下一篇</span>
+      <span id="i-top" class="info" style="display:none;">返回顶部</span>
+      <span id="i-share" class="info" style="display:none;">分享文章</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&text=initramfs 是什么"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&is_video=false&description=initramfs 是什么"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=initramfs 是什么&body=Check out this article: http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&name=initramfs 是什么&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;initramfs 本质就是一套用于 Linux 启动阶段的目录和文件。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;rootfs.cpio.gz&lt;/code&gt; 是打包产物：&lt;code&gt;find&lt;/code&gt; 列文件、&lt;code&gt;cpio&lt;/code&gt; 打包、&lt;code&gt;gzip&lt;/code&gt; 压缩，三件事各管一段。&lt;/li&gt;
+&lt;li&gt;内核拿到 initramfs 后解压展开到 RAM，形成 &lt;code&gt;/&lt;/code&gt;，然后寻找并执行 &lt;code&gt;/init&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;initramfs 运行期间就是根文件系统，掉电即消失；ext4 rootfs 装在 eMMC&amp;#x2F;SD&amp;#x2F;SSD 上，长期保存、由内核挂载。&lt;/li&gt;
+&lt;li&gt;两种放法：&lt;code&gt;CONFIG_INITRAMFS_SOURCE&lt;/code&gt; 编进内核，或由 U-Boot 与 Kernel、DTB 一起加载到 RAM。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&t=initramfs 是什么"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%9C%AC%E8%B4%A8"><span class="toc-number">2.</span> <span class="toc-text">1. 本质</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%87%BA%E7%8E%B0-rootfs-cpio-gz"><span class="toc-number">3.</span> <span class="toc-text">2. 为什么会出现 rootfs.cpio.gz</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-initramfs"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 如何使用 initramfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-initramfs-%E5%92%8C-ext4-rootfs-%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">5.</span> <span class="toc-text">4. initramfs 和 ext4 rootfs 的区别</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-initramfs-%E5%8F%AF%E4%BB%A5%E6%94%BE%E5%9C%A8%E5%93%AA%E9%87%8C"><span class="toc-number">6.</span> <span class="toc-text">5. initramfs 可以放在哪里</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E7%BC%96%E8%AF%91%E8%BF%9B-Kernel"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 编译进 Kernel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E7%94%B1-U-Boot-%E5%8D%95%E7%8B%AC%E5%8A%A0%E8%BD%BD"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 由 U-Boot 单独加载</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        initramfs 是什么
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">yjrqz777</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-10-10T06:30:00.000Z" class="dt-published" itemprop="datePublished">2026-10-10</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/cactus-theme/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/">嵌入式</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fa-solid fa-tag"></i>
+        <a class="p-category" href="/cactus-theme/tags/MT7621/" rel="tag">MT7621</a>, <a class="p-category" href="/cactus-theme/tags/cpio/" rel="tag">cpio</a>, <a class="p-category" href="/cactus-theme/tags/initramfs/" rel="tag">initramfs</a>, <a class="p-category" href="/cactus-theme/tags/rootfs/" rel="tag">rootfs</a>, <a class="p-category" href="/cactus-theme/tags/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux/" rel="tag">嵌入式Linux</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="结论速览"><a href="#结论速览" class="headerlink" title="结论速览"></a>结论速览</h2><ul>
+<li>initramfs 本质就是一套用于 Linux 启动阶段的目录和文件。</li>
+<li><code>rootfs.cpio.gz</code> 是打包产物：<code>find</code> 列文件、<code>cpio</code> 打包、<code>gzip</code> 压缩，三件事各管一段。</li>
+<li>内核拿到 initramfs 后解压展开到 RAM，形成 <code>/</code>，然后寻找并执行 <code>/init</code>。</li>
+<li>initramfs 运行期间就是根文件系统，掉电即消失；ext4 rootfs 装在 eMMC&#x2F;SD&#x2F;SSD 上，长期保存、由内核挂载。</li>
+<li>两种放法：<code>CONFIG_INITRAMFS_SOURCE</code> 编进内核，或由 U-Boot 与 Kernel、DTB 一起加载到 RAM。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-本质"><a href="#1-本质" class="headerlink" title="1. 本质"></a>1. 本质</h2><p>initramfs 本质上就是：</p>
+<blockquote>
+<p>一套用于 Linux 启动阶段的目录和文件。</p>
+</blockquote>
+<p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">rootfs/</span><br><span class="line">├── init</span><br><span class="line">├── bin/</span><br><span class="line">│   └── busybox</span><br><span class="line">├── dev/</span><br><span class="line">├── proc/</span><br><span class="line">├── sys/</span><br><span class="line">└── etc/</span><br></pre></td></tr></table></figure>
+
+<p>这些最开始只是 PC 上的普通文件和目录。</p>
+<h2 id="2-为什么会出现-rootfs-cpio-gz"><a href="#2-为什么会出现-rootfs-cpio-gz" class="headerlink" title="2. 为什么会出现 rootfs.cpio.gz"></a>2. 为什么会出现 <code>rootfs.cpio.gz</code></h2><p>可以把目录打包：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> rootfs</span><br><span class="line">find . | cpio -o -H newc | gzip &gt; rootfs.cpio.gz</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">find</span><br><span class="line"> ↓</span><br><span class="line">列出文件</span><br><span class="line"></span><br><span class="line">cpio</span><br><span class="line"> ↓</span><br><span class="line">把这些文件打成一个 archive</span><br><span class="line"></span><br><span class="line">gzip</span><br><span class="line"> ↓</span><br><span class="line">压缩 archive</span><br></pre></td></tr></table></figure>
+
+<p>因此：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">rootfs/</span><br><span class="line"> ↓</span><br><span class="line">cpio</span><br><span class="line"> ↓</span><br><span class="line">rootfs.cpio</span><br><span class="line"> ↓</span><br><span class="line">gzip</span><br><span class="line"> ↓</span><br><span class="line">rootfs.cpio.gz</span><br></pre></td></tr></table></figure>
+
+<p><code>cpio</code> 负责打包，<code>gzip</code> 负责压缩。</p>
+<h2 id="3-Kernel-如何使用-initramfs"><a href="#3-Kernel-如何使用-initramfs" class="headerlink" title="3. Kernel 如何使用 initramfs"></a>3. Kernel 如何使用 initramfs</h2><p>Kernel 启动时获得 initramfs 后，会把里面的内容展开到 RAM。</p>
+<p>过程：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">rootfs.cpio.gz</span><br><span class="line"> ↓</span><br><span class="line">Kernel 解压</span><br><span class="line"> ↓</span><br><span class="line">在 RAM 中形成 /</span><br><span class="line"> ↓</span><br><span class="line">寻找 /init</span><br><span class="line"> ↓</span><br><span class="line">执行 /init</span><br></pre></td></tr></table></figure>
+
+<p>所以运行后看到的是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/</span><br><span class="line">├── init</span><br><span class="line">├── bin/</span><br><span class="line">├── dev/</span><br><span class="line">├── proc/</span><br><span class="line">└── sys/</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-initramfs-和-ext4-rootfs-的区别"><a href="#4-initramfs-和-ext4-rootfs-的区别" class="headerlink" title="4. initramfs 和 ext4 rootfs 的区别"></a>4. initramfs 和 ext4 rootfs 的区别</h2><p>initramfs：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">文件包</span><br><span class="line"> ↓</span><br><span class="line">启动时解到 RAM</span><br><span class="line"> ↓</span><br><span class="line">运行期间作为 /</span><br><span class="line"> ↓</span><br><span class="line">掉电消失</span><br></pre></td></tr></table></figure>
+
+<p>ext4 rootfs：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">eMMC / SD / SSD</span><br><span class="line"> ↓</span><br><span class="line">长期保存</span><br><span class="line"> ↓</span><br><span class="line">Kernel 挂载</span><br><span class="line"> ↓</span><br><span class="line">作为 /</span><br></pre></td></tr></table></figure>
+
+<p>因此 initramfs 很适合：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">系统 bring-up</span><br><span class="line">救援环境</span><br><span class="line">安装环境</span><br><span class="line">极简嵌入式系统</span><br><span class="line">早期启动环境</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-initramfs-可以放在哪里"><a href="#5-initramfs-可以放在哪里" class="headerlink" title="5. initramfs 可以放在哪里"></a>5. initramfs 可以放在哪里</h2><p>有两种常见方式。</p>
+<h3 id="5-1-编译进-Kernel"><a href="#5-1-编译进-Kernel" class="headerlink" title="5.1 编译进 Kernel"></a>5.1 编译进 Kernel</h3><p>通过：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CONFIG_INITRAMFS_SOURCE</span><br></pre></td></tr></table></figure>
+
+<p>直接把 rootfs 嵌进内核镜像。</p>
+<h3 id="5-2-由-U-Boot-单独加载"><a href="#5-2-由-U-Boot-单独加载" class="headerlink" title="5.2 由 U-Boot 单独加载"></a>5.2 由 U-Boot 单独加载</h3><p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel</span><br><span class="line">rootfs.cpio.gz</span><br><span class="line">DTB</span><br></pre></td></tr></table></figure>
+
+<p>分别加载到 RAM，再由 U-Boot 启动 Linux。</p>
+<p>两种方式最终效果类似：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Kernel 得到 initramfs</span><br><span class="line"> ↓</span><br><span class="line">展开</span><br><span class="line"> ↓</span><br><span class="line">执行 /init</span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/cactus-theme/">首页</a></li>
+        
+          <li><a href="/cactus-theme/about/">关于</a></li>
+        
+          <li><a href="/cactus-theme/archives/">归档</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E9%80%9F%E8%A7%88"><span class="toc-number">1.</span> <span class="toc-text">结论速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%9C%AC%E8%B4%A8"><span class="toc-number">2.</span> <span class="toc-text">1. 本质</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%87%BA%E7%8E%B0-rootfs-cpio-gz"><span class="toc-number">3.</span> <span class="toc-text">2. 为什么会出现 rootfs.cpio.gz</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Kernel-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-initramfs"><span class="toc-number">4.</span> <span class="toc-text">3. Kernel 如何使用 initramfs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-initramfs-%E5%92%8C-ext4-rootfs-%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">5.</span> <span class="toc-text">4. initramfs 和 ext4 rootfs 的区别</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-initramfs-%E5%8F%AF%E4%BB%A5%E6%94%BE%E5%9C%A8%E5%93%AA%E9%87%8C"><span class="toc-number">6.</span> <span class="toc-text">5. initramfs 可以放在哪里</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E7%BC%96%E8%AF%91%E8%BF%9B-Kernel"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 编译进 Kernel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E7%94%B1-U-Boot-%E5%8D%95%E7%8B%AC%E5%8A%A0%E8%BD%BD"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 由 U-Boot 单独加载</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&text=initramfs 是什么"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&is_video=false&description=initramfs 是什么"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=initramfs 是什么&body=Check out this article: http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&title=initramfs 是什么"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&name=initramfs 是什么&description=&lt;h2 id=&#34;结论速览&#34;&gt;&lt;a href=&#34;#结论速览&#34; class=&#34;headerlink&#34; title=&#34;结论速览&#34;&gt;&lt;/a&gt;结论速览&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;initramfs 本质就是一套用于 Linux 启动阶段的目录和文件。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;rootfs.cpio.gz&lt;/code&gt; 是打包产物：&lt;code&gt;find&lt;/code&gt; 列文件、&lt;code&gt;cpio&lt;/code&gt; 打包、&lt;code&gt;gzip&lt;/code&gt; 压缩，三件事各管一段。&lt;/li&gt;
+&lt;li&gt;内核拿到 initramfs 后解压展开到 RAM，形成 &lt;code&gt;/&lt;/code&gt;，然后寻找并执行 &lt;code&gt;/init&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;initramfs 运行期间就是根文件系统，掉电即消失；ext4 rootfs 装在 eMMC&amp;#x2F;SD&amp;#x2F;SSD 上，长期保存、由内核挂载。&lt;/li&gt;
+&lt;li&gt;两种放法：&lt;code&gt;CONFIG_INITRAMFS_SOURCE&lt;/code&gt; 编进内核，或由 U-Boot 与 Kernel、DTB 一起加载到 RAM。&lt;/li&gt;
+&lt;/ul&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2026/10/10/mt7621-minimal-linux/03-what-is-initramfs/&t=initramfs 是什么"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> 菜单</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> 目录</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> 分享</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> 返回顶部</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    yjrqz777
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/cactus-theme/">首页</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/about/">关于</a></li><!--
+     --><!--
+       --><li><a href="/cactus-theme/archives/">归档</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="https://github.com/yjrqz777">项目</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"复制到粘贴板！\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "复制成功！");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/cactus-theme/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+
+<!-- hexo injector body_end start --><script type="text/javascript">
+  (function () {
+    var nodes = document.querySelectorAll('pre.mermaid');
+    if (!nodes.length || window.__hexoMermaidLoaded) return;
+
+    window.__hexoMermaidLoaded = true;
+
+    function renderMermaid () {
+      if (!window.mermaid) return;
+
+      window.mermaid.initialize({"startOnLoad":false,"theme":"default"});
+
+      if (typeof window.mermaid.run === 'function') {
+        window.mermaid.run({ nodes: Array.prototype.slice.call(nodes) });
+      } else if (typeof window.mermaid.init === 'function') {
+        window.mermaid.init(undefined, nodes);
+      }
+    }
+
+    if (window.mermaid) {
+      renderMermaid();
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js';
+    script.onload = renderMermaid;
+    document.head.appendChild(script);
+  })();
+</script><!-- hexo injector body_end end --></body>
+</html>
